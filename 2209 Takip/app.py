@@ -114,6 +114,60 @@ def register():
     
     return render_template('register.html')
 
+@app.route('/profile')
+@login_required
+def profile():
+    return render_template('profile.html')
+
+@app.route('/change_password', methods=['POST'])
+@login_required
+def change_password():
+    current_password = request.form.get('current_password')
+    new_password = request.form.get('new_password')
+    confirm_password = request.form.get('confirm_password')
+    
+    # Mevcut şifreyi kontrol et
+    if not current_user.check_password(current_password):
+        flash('Mevcut şifreniz yanlış!', 'danger')
+        return redirect(url_for('profile'))
+    
+    # Yeni şifrelerin eşleşmesini kontrol et
+    if new_password != confirm_password:
+        flash('Yeni şifreler eşleşmiyor!', 'danger')
+        return redirect(url_for('profile'))
+    
+    # Şifre uzunluğunu kontrol et
+    if len(new_password) < 6:
+        flash('Şifre en az 6 karakter olmalıdır!', 'danger')
+        return redirect(url_for('profile'))
+    
+    # Şifreyi güncelle
+    current_user.set_password(new_password)
+    db.session.commit()
+    
+    flash('Şifreniz başarıyla güncellendi!', 'success')
+    return redirect(url_for('profile'))
+
+@app.route('/update_profile', methods=['POST'])
+@login_required
+def update_profile():
+    full_name = request.form.get('full_name')
+    email = request.form.get('email')
+    
+    # Email başka bir kullanıcıda var mı kontrol et
+    existing_user = User.query.filter_by(email=email).first()
+    if existing_user and existing_user.id != current_user.id:
+        flash('Bu email adresi başka bir kullanıcı tarafından kullanılıyor!', 'danger')
+        return redirect(url_for('profile'))
+    
+    # Bilgileri güncelle
+    current_user.full_name = full_name
+    current_user.email = email
+    db.session.commit()
+    
+    flash('Bilgileriniz başarıyla güncellendi!', 'success')
+    return redirect(url_for('profile'))
+
 @app.route('/logout')
 @login_required
 def logout():

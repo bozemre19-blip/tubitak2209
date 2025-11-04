@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}Profil Ayarları - TÜBİTAK 2209{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">
+                    <i class="bi bi-person-gear"></i> Profil Ayarları
+                </h4>
+            </div>
+            <div class="card-body">
+                <!-- Mevcut Bilgiler -->
+                <div class="mb-4">
+                    <h5><i class="bi bi-info-circle"></i> Mevcut Bilgileriniz</h5>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <strong>Kullanıcı Adı:</strong>
+                            <p class="text-muted">{{ current_user.username }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Ad Soyad:</strong>
+                            <p class="text-muted">{{ current_user.full_name }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>E-posta:</strong>
+                            <p class="text-muted">{{ current_user.email }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Hesap Türü:</strong>
+                            <p class="text-muted">
+                                {% if current_user.role == 'admin' %}
+                                    <span class="badge bg-warning text-dark">Öğretmen</span>
+                                {% else %}
+                                    <span class="badge bg-info">Öğrenci</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Şifre Değiştirme -->
+                <div class="mb-4">
+                    <h5><i class="bi bi-key"></i> Şifre Değiştir</h5>
+                    <hr>
+                    <form method="POST" action="{{ url_for('change_password') }}">
+                        <div class="mb-3">
+                            <label for="current_password" class="form-label">Mevcut Şifre</label>
+                            <input type="password" class="form-control" id="current_password" 
+                                   name="current_password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="new_password" class="form-label">Yeni Şifre</label>
+                            <input type="password" class="form-control" id="new_password" 
+                                   name="new_password" required minlength="6">
+                            <div class="form-text">En az 6 karakter olmalıdır.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirm_password" class="form-label">Yeni Şifre (Tekrar)</label>
+                            <input type="password" class="form-control" id="confirm_password" 
+                                   name="confirm_password" required minlength="6">
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Şifreyi Güncelle
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Bilgileri Güncelleme -->
+                <div class="mb-4">
+                    <h5><i class="bi bi-pencil-square"></i> Bilgilerimi Güncelle</h5>
+                    <hr>
+                    <form method="POST" action="{{ url_for('update_profile') }}">
+                        <div class="mb-3">
+                            <label for="full_name" class="form-label">Ad Soyad</label>
+                            <input type="text" class="form-control" id="full_name" 
+                                   name="full_name" value="{{ current_user.full_name }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">E-posta</label>
+                            <input type="email" class="form-control" id="email" 
+                                   name="email" value="{{ current_user.email }}" required>
+                        </div>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-save"></i> Bilgileri Güncelle
+                        </button>
+                    </form>
+                </div>
+
+                <div class="text-center">
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Geri Dön
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
