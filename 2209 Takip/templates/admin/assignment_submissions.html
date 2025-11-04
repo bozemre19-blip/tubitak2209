@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}{{ assignment.title }} - Teslimler{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Anasayfa</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('admin_classes') }}">Sınıflar</a></li>
+                <li class="breadcrumb-item">
+                    <a href="{{ url_for('admin_class_detail', class_id=assignment.class_id) }}">
+                        {{ assignment.class_ref.name }}
+                    </a>
+                </li>
+                <li class="breadcrumb-item active">{{ assignment.title }}</li>
+            </ol>
+        </nav>
+        
+        <h1><i class="bi bi-file-earmark-text"></i> {{ assignment.title }}</h1>
+    </div>
+</div>
+
+<!-- Ödev Bilgileri -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <h5>Ödev Açıklaması</h5>
+                        <p>{{ assignment.description }}</p>
+                    </div>
+                    <div class="col-md-4">
+                        <p><strong>Son Teslim:</strong> {{ assignment.due_date|datetime }}</p>
+                        <p><strong>Max Puan:</strong> {{ assignment.max_score }}</p>
+                        <p>
+                            <strong>Teslim Durumu:</strong> 
+                            <span class="badge bg-info">
+                                {{ submissions|length }} / {{ (submissions|length + not_submitted_students|length) }}
+                            </span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Teslim Edilen Ödevler -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-check-circle"></i> Teslim Edilen Ödevler ({{ submissions|length }})
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if submissions %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Öğrenci</th>
+                                <th>Dosya</th>
+                                <th>Teslim Tarihi</th>
+                                <th>Durum</th>
+                                <th>Not</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for submission in submissions %}
+                            <tr>
+                                <td>
+                                    <i class="bi bi-person-circle"></i> 
+                                    <strong>{{ submission.student.full_name }}</strong><br>
+                                    <small class="text-muted">{{ submission.student.email }}</small>
+                                    {% if submission.student_comment %}
+                                    <br><small class="text-info">
+                                        <i class="bi bi-chat-left-text"></i> <em>"{{ submission.student_comment[:50] }}{% if submission.student_comment|length > 50 %}...{% endif %}"</em>
+                                    </small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <i class="bi bi-file-earmark-pdf text-danger"></i> 
+                                    {{ submission.file_name }}
+                                </td>
+                                <td>
+                                    {{ submission.submitted_at|datetime }}
+                                    {% if submission.submitted_at > assignment.due_date %}
+                                    <br><span class="badge bg-danger">Geç Teslim</span>
+                                    {% else %}
+                                    <br><span class="badge bg-success">Zamanında</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if submission.score is not none %}
+                                    <span class="badge bg-success">
+                                        <i class="bi bi-check-circle"></i> Notlandırıldı
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-warning">
+                                        <i class="bi bi-hourglass-split"></i> Bekliyor
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if submission.score is not none %}
+                                    <strong class="text-primary">{{ submission.score }}/{{ assignment.max_score }}</strong>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('download_submission', submission_id=submission.id) }}" 
+                                       class="btn btn-sm btn-primary mb-1">
+                                        <i class="bi bi-download"></i> İndir
+                                    </a>
+                                    <button class="btn btn-sm btn-success mb-1" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#gradeModal{{ submission.id }}">
+                                        <i class="bi bi-pencil"></i> Notlandır
+                                    </button>
+                                </td>
+                            </tr>
+                            
+                            <!-- Notlandırma Modal -->
+                            <div class="modal fade" id="gradeModal{{ submission.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Notlandır: {{ submission.student.full_name }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <form method="POST" action="{{ url_for('grade_submission', submission_id=submission.id) }}">
+                                            <div class="modal-body">
+                                                {% if submission.student_comment %}
+                                                <div class="alert alert-info">
+                                                    <strong><i class="bi bi-chat-left-text"></i> Öğrenci Açıklaması:</strong>
+                                                    <p class="mb-0 mt-2 fst-italic">"{{ submission.student_comment }}"</p>
+                                                </div>
+                                                {% endif %}
+                                                
+                                                <div class="mb-3">
+                                                    <label for="score{{ submission.id }}" class="form-label">
+                                                        Not (Max: {{ assignment.max_score }})
+                                                    </label>
+                                                    <input type="number" class="form-control" 
+                                                           id="score{{ submission.id }}" name="score" 
+                                                           min="0" max="{{ assignment.max_score }}" 
+                                                           value="{{ submission.score or '' }}" required>
+                                                </div>
+                                                
+                                                <div class="mb-3">
+                                                    <label for="feedback{{ submission.id }}" class="form-label">
+                                                        Geri Bildirim
+                                                    </label>
+                                                    <textarea class="form-control" 
+                                                              id="feedback{{ submission.id }}" name="feedback" 
+                                                              rows="4" placeholder="Öğrenciye geri bildirim yazın...">{{ submission.feedback or '' }}</textarea>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                    İptal
+                                                </button>
+                                                <button type="submit" class="btn btn-success">
+                                                    <i class="bi bi-check-circle"></i> Kaydet
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-inbox"></i>
+                    <p>Henüz teslim edilen ödev yok.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Teslim Etmeyenler -->
+{% if not_submitted_students %}
+<div class="row">
+    <div class="col-12">
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">
+                    <i class="bi bi-exclamation-triangle"></i> Teslim Etmeyen Öğrenciler ({{ not_submitted_students|length }})
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Ad Soyad</th>
+                                <th>E-posta</th>
+                                <th>Kullanıcı Adı</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in not_submitted_students %}
+                            <tr>
+                                <td><i class="bi bi-person-circle"></i> {{ student.full_name }}</td>
+                                <td>{{ student.email }}</td>
+                                <td>{{ student.username }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+

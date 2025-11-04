@@ -1,0 +1,150 @@
+=====================================
+TÜBİTAK 2209 TAKİP SİSTEMİ
+HIZLI BAŞLATMA REHBERİ
+=====================================
+
+ADIM 1: PYTHON KONTROLÜ
+------------------------
+PowerShell veya CMD'yi açın ve şunu yazın:
+
+    python --version
+
+VEYA
+
+    python3 --version
+
+Eğer "Python 3.8" veya daha yeni bir sürüm görüyorsanız, devam edin!
+Görmüyorsanız, https://www.python.org/downloads/ adresinden Python indirin.
+
+
+ADIM 2: PROJE KLASÖRÜNE GİDİN
+------------------------------
+CMD veya PowerShell'de proje klasörüne gidin:
+
+    cd "C:\Users\1433d\OneDrive\Belgeler\2209 Takip"
+
+
+ADIM 3: SANAL ORTAM OLUŞTURUN (İlk Kez)
+----------------------------------------
+Bu işlemi sadece ilk kullanımda yapın:
+
+    python -m venv venv
+
+Bu komut "venv" adında bir klasör oluşturacak. Birkaç saniye sürebilir.
+
+
+ADIM 4: SANAL ORTAMI AKTİF EDİN
+--------------------------------
+Windows PowerShell için:
+
+    venv\Scripts\Activate.ps1
+
+Windows CMD için:
+
+    venv\Scripts\activate.bat
+
+Başarılı olursa, komut satırının başında (venv) görünecek.
+
+NOT: PowerShell'de hata alırsanız, şunu deneyin:
+    Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+    Sonra tekrar: venv\Scripts\Activate.ps1
+
+
+ADIM 5: GEREKLİ PAKETLERİ YÜKLEYİN (İlk Kez)
+---------------------------------------------
+Sanal ortam aktifken:
+
+    pip install -r requirements.txt
+
+Bu komut gerekli tüm Python paketlerini yükleyecek.
+İnternet bağlantınız olmalı. 1-2 dakika sürebilir.
+
+
+ADIM 6: UYGULAMAYI BAŞLATIN
+----------------------------
+    python app.py
+
+Şu mesajı görmelisiniz:
+    * Running on http://0.0.0.0:5000
+    * Restarting with stat
+    * Debugger is active!
+
+
+ADIM 7: TARAYICIDA AÇIN
+------------------------
+Tarayıcınızda şu adresi açın:
+
+    http://localhost:5000
+
+VEYA
+
+    http://127.0.0.1:5000
+
+
+ADIM 8: GİRİŞ YAPIN
+-------------------
+İlk admin girişi:
+    Kullanıcı adı: admin
+    Şifre: admin123
+
+
+=====================================
+KISA YOL (Sonraki Kullanımlarda)
+=====================================
+
+1. PowerShell veya CMD açın
+2. cd "C:\Users\1433d\OneDrive\Belgeler\2209 Takip"
+3. venv\Scripts\activate.bat  (veya Activate.ps1)
+4. python app.py
+5. Tarayıcıda: http://localhost:5000
+
+
+VEYA DAHA KOLAY:
+
+Sadece "start.bat" dosyasına çift tıklayın!
+
+
+=====================================
+SORUN GİDERME
+=====================================
+
+❌ "Python bulunamadı" hatası:
+   → Python'u PATH'e ekleyin veya tam yol kullanın
+
+❌ "venv\Scripts\activate" çalışmıyor:
+   → CMD kullanmayı deneyin (PowerShell yerine)
+   → VEYA: Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+❌ "Port 5000 zaten kullanımda":
+   → app.py'nin son satırını değiştirin: port=5001
+
+❌ "Module not found" hatası:
+   → pip install -r requirements.txt komutunu tekrar çalıştırın
+   → Sanal ortamın aktif olduğundan emin olun (başta (venv) yazmalı)
+
+
+=====================================
+DEMO VERİ (Opsiyonel)
+=====================================
+
+Sistemde örnek öğrenciler, sınıflar ve ödevler oluşturmak için:
+
+    python demo_data.py
+
+Bu 5 öğrenci, 3 sınıf ve 6 ödev oluşturur.
+
+Örnek öğrenci girişi:
+    Kullanıcı adı: ahmet.yilmaz
+    Şifre: 12345
+
+
+=====================================
+DURDURMAK İÇİN
+=====================================
+
+Uygulamayı durdurmak için:
+    Ctrl + C tuşlarına basın
+
+
+İyi çalışmalar! 🎓
+

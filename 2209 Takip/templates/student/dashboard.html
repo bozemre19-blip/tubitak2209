@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}Öğrenci Paneli - TÜBİTAK 2209{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="bi bi-house-door"></i> Hoş Geldiniz, {{ current_user.full_name }}!
+        </h1>
+    </div>
+</div>
+
+<!-- Bilgilendirmeler -->
+{% if recent_announcements %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-success">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-megaphone-fill"></i> Son Bilgilendirmeler
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for item in recent_announcements %}
+                {% set is_read = item.announcement.reads|selectattr('student_id', 'equalto', current_user.id)|list|length > 0 %}
+                <div class="alert {% if item.announcement.is_important %}alert-warning{% else %}alert-info{% endif %} mb-3 {% if is_read %}opacity-75{% endif %}" role="alert">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <h6 class="alert-heading">
+                                {% if is_read %}
+                                <span class="badge bg-success me-2">
+                                    <i class="bi bi-check2"></i> Okundu
+                                </span>
+                                {% endif %}
+                                {% if item.announcement.is_important %}
+                                <i class="bi bi-exclamation-triangle-fill"></i> <strong>ÖNEMLİ:</strong>
+                                {% else %}
+                                <i class="bi bi-info-circle-fill"></i>
+                                {% endif %}
+                                {{ item.announcement.title }}
+                            </h6>
+                            <p class="mb-2">{{ item.announcement.content }}</p>
+                            <div class="d-flex gap-2 flex-wrap">
+                                {% if item.announcement.file_name %}
+                                <a href="{{ url_for('download_announcement', announcement_id=item.announcement.id) }}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-download"></i> {{ item.announcement.file_name }}
+                                </a>
+                                {% endif %}
+                                {% if not is_read %}
+                                <form method="POST" action="{{ url_for('mark_announcement_read', announcement_id=item.announcement.id) }}" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-success">
+                                        <i class="bi bi-check-circle"></i> Okundu İşaretle
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="text-end ms-3">
+                            <span class="badge bg-secondary">{{ item.class.name }}</span>
+                        </div>
+                    </div>
+                    <hr>
+                    <small class="text-muted">
+                        <i class="bi bi-calendar"></i> {{ item.announcement.created_at|datetime }} - 
+                        <i class="bi bi-person"></i> {{ item.announcement.creator.full_name }}
+                    </small>
+                </div>
+                {% endfor %}
+                
+                {% if recent_announcements|length == 5 %}
+                <div class="text-center">
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle"></i> Tüm bilgilendirmeleri görmek için sınıflarınıza gidin
+                    </small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Sınıflarım -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-book"></i> Sınıflarım ({{ my_classes|length }})
+                </h5>
+                <a href="{{ url_for('student_classes') }}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-plus-circle"></i> Yeni Sınıfa Katıl
+                </a>
+            </div>
+            <div class="card-body">
+                {% if my_classes %}
+                <div class="row">
+                    {% for class in my_classes %}
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card class-card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="bi bi-book-fill text-primary"></i> {{ class.name }}
+                                </h5>
+                                <p class="card-text">
+                                    <span class="badge bg-info">{{ class.code }}</span><br>
+                                    <strong>Ödev Sayısı:</strong> {{ class.assignments|length }}
+                                </p>
+                                <a href="{{ url_for('student_class_assignments', class_id=class.id) }}" 
+                                   class="btn btn-outline-primary w-100">
+                                    <i class="bi bi-eye"></i> Ödevleri Gör
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-book"></i>
+                    <h5>Henüz hiçbir sınıfa katılmadınız</h5>
+                    <p>Yukarıdaki butonu kullanarak bir sınıfa katılabilirsiniz.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Yaklaşan Ödevler -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-calendar-event"></i> Yaklaşan Ödevler
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if upcoming_assignments %}
+                <div class="list-group list-group-flush">
+                    {% for item in upcoming_assignments %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">
+                                    <i class="bi bi-file-earmark-text"></i> {{ item.assignment.title }}
+                                </h6>
+                                <p class="mb-1 text-muted">
+                                    <span class="badge bg-secondary">{{ item.class.name }}</span>
+                                    {{ item.assignment.description[:100] }}...
+                                </p>
+                                <small class="text-muted">
+                                    <i class="bi bi-clock"></i> Son Teslim: 
+                                    <strong>{{ item.assignment.due_date|datetime }}</strong>
+                                </small>
+                            </div>
+                            <div class="ms-3">
+                                {% if item.submitted %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle"></i> Teslim Edildi
+                                </span>
+                                {% else %}
+                                <a href="{{ url_for('student_class_assignments', class_id=item.class.id) }}" 
+                                   class="btn btn-sm btn-warning">
+                                    <i class="bi bi-upload"></i> Teslim Et
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-calendar-check"></i>
+                    <h5>Yaklaşan ödeviniz yok</h5>
+                    <p>Tüm ödevleriniz tamamlanmış veya henüz ödev verilmemiş.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

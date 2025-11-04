@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Flask
+instance/
+.env
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Uploads (opsiyonel - yüklemek isterseniz bu satırı silin)
+# static/uploads/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+
+# Yedekler
+*_backup_*
+backup_*
+*.tar.gz

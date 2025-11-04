@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Kayıt Ol - TÜBİTAK 2209{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="card auth-card shadow-lg">
+        <div class="card-body">
+            <div class="text-center mb-4">
+                <i class="bi bi-person-plus-fill text-success" style="font-size: 3rem;"></i>
+                <h2 class="mt-3">Kayıt Ol</h2>
+                <p class="text-muted">Öğrenci veya öğretmen hesabı oluşturun</p>
+            </div>
+            
+            <form method="POST" action="{{ url_for('register') }}">
+                <div class="mb-3">
+                    <label for="full_name" class="form-label">
+                        <i class="bi bi-person"></i> Ad Soyad
+                    </label>
+                    <input type="text" class="form-control" id="full_name" name="full_name" required autofocus>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="role" class="form-label">
+                        <i class="bi bi-person-badge-fill"></i> Hesap Türü
+                    </label>
+                    <select class="form-select" id="role" name="role" required>
+                        <option value="">Seçiniz...</option>
+                        <option value="student">👨‍🎓 Öğrenci</option>
+                        <option value="admin">👨‍🏫 Öğretmen/Danışman</option>
+                    </select>
+                    <small class="form-text text-muted">Öğrenci veya öğretmen olarak kayıt olun</small>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="username" class="form-label">
+                        <i class="bi bi-person-badge"></i> Kullanıcı Adı
+                    </label>
+                    <input type="text" class="form-control" id="username" name="username" required>
+                    <small class="form-text text-muted">Giriş yaparken kullanacağınız kullanıcı adı</small>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="email" class="form-label">
+                        <i class="bi bi-envelope"></i> E-posta
+                    </label>
+                    <input type="email" class="form-control" id="email" name="email" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="password" class="form-label">
+                        <i class="bi bi-lock"></i> Şifre
+                    </label>
+                    <input type="password" class="form-control" id="password" name="password" required minlength="6">
+                    <small class="form-text text-muted">En az 6 karakter olmalıdır</small>
+                </div>
+                
+                <button type="submit" class="btn btn-success w-100">
+                    <i class="bi bi-check-circle"></i> Kayıt Ol
+                </button>
+            </form>
+            
+            <hr class="my-4">
+            
+            <div class="text-center">
+                <p class="mb-0">Zaten hesabınız var mı?</p>
+                <a href="{{ url_for('login') }}" class="btn btn-outline-primary mt-2">
+                    <i class="bi bi-box-arrow-in-right"></i> Giriş Yap
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

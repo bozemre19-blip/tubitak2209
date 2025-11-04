@@ -1,0 +1,349 @@
+{% extends "base.html" %}
+
+{% block title %}{{ cls.name }} - TÜBİTAK 2209{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Anasayfa</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('admin_classes') }}">Sınıflar</a></li>
+                <li class="breadcrumb-item active">{{ cls.name }}</li>
+            </ol>
+        </nav>
+        
+        <h1><i class="bi bi-book-fill"></i> {{ cls.name }}</h1>
+        <p class="lead">
+            <span class="badge bg-info">{{ cls.code }}</span>
+            {{ cls.description }}
+        </p>
+    </div>
+</div>
+
+<!-- İstatistikler -->
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-people-fill text-primary" style="font-size: 2rem;"></i>
+                <h4 class="mt-2">{{ students|length }}</h4>
+                <p class="text-muted mb-0">Kayıtlı Öğrenci</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-file-earmark-text-fill text-success" style="font-size: 2rem;"></i>
+                <h4 class="mt-2">{{ assignments|length }}</h4>
+                <p class="text-muted mb-0">Toplam Ödev</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-calendar-event text-info" style="font-size: 2rem;"></i>
+                <h4 class="mt-2">{{ cls.created_at|date }}</h4>
+                <p class="text-muted mb-0">Oluşturulma Tarihi</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bilgilendirmeler -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-megaphone"></i> Bilgilendirmeler
+                </h5>
+                <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#createAnnouncementModal">
+                    <i class="bi bi-plus-circle"></i> Yeni Bilgilendirme
+                </button>
+            </div>
+            <div class="card-body">
+                {% if cls.announcements %}
+                <div class="list-group">
+                    {% for announcement in cls.announcements|reverse %}
+                    <div class="list-group-item {% if announcement.is_important %}border-warning{% endif %}">
+                        <div class="d-flex w-100 justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">
+                                    {% if announcement.is_important %}
+                                    <span class="badge bg-warning text-dark">ÖNEMLİ</span>
+                                    {% endif %}
+                                    <i class="bi bi-megaphone-fill"></i> {{ announcement.title }}
+                                </h6>
+                                <p class="mb-1">{{ announcement.content }}</p>
+                                {% if announcement.file_name %}
+                                <p class="mb-1">
+                                    <a href="{{ url_for('download_announcement', announcement_id=announcement.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-download"></i> {{ announcement.file_name }}
+                                    </a>
+                                </p>
+                                {% endif %}
+                                <small class="text-muted">
+                                    <i class="bi bi-calendar"></i> {{ announcement.created_at|datetime }}
+                                </small>
+                                <br>
+                                <small>
+                                    <a href="{{ url_for('announcement_readers', announcement_id=announcement.id) }}" class="text-info">
+                                        <i class="bi bi-eye-fill"></i> 
+                                        {{ announcement.reads|length }}/{{ cls.students.count() }} öğrenci okudu
+                                    </a>
+                                </small>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <a href="{{ url_for('announcement_readers', announcement_id=announcement.id) }}" 
+                                   class="btn btn-sm btn-outline-info">
+                                    <i class="bi bi-people"></i>
+                                </a>
+                                <form method="POST" action="{{ url_for('delete_announcement', announcement_id=announcement.id) }}" 
+                                      onsubmit="return confirm('Bu bilgilendirmeyi silmek istediğinizden emin misiniz?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-megaphone"></i>
+                    <p>Henüz bilgilendirme yayınlanmamış.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Ödevler -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-file-earmark-text"></i> Ödevler
+                </h5>
+                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#createAssignmentModal">
+                    <i class="bi bi-plus-circle"></i> Yeni Ödev Ver
+                </button>
+            </div>
+            <div class="card-body">
+                {% if assignments %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Ödev Başlığı</th>
+                                <th>Son Teslim</th>
+                                <th>Teslim Sayısı</th>
+                                <th>Max Puan</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for assignment in assignments %}
+                            <tr>
+                                <td>
+                                    <strong>{{ assignment.title }}</strong><br>
+                                    <small class="text-muted">{{ assignment.description[:100] }}...</small>
+                                </td>
+                                <td>
+                                    {{ assignment.due_date|datetime }}
+                                    {% if assignment.due_date < now() %}
+                                    <br><span class="badge bg-danger">Süresi Doldu</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">
+                                        {{ assignment.submissions|length }} / {{ students|length }}
+                                    </span>
+                                </td>
+                                <td>{{ assignment.max_score }}</td>
+                                <td>
+                                    <a href="{{ url_for('admin_assignment_submissions', assignment_id=assignment.id) }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye"></i> Teslimleri Gör
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-file-earmark-text"></i>
+                    <p>Bu sınıf için henüz ödev verilmemiş.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Öğrenciler -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-people"></i> Kayıtlı Öğrenciler
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if students %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Ad Soyad</th>
+                                <th>Kullanıcı Adı</th>
+                                <th>E-posta</th>
+                                <th>Kayıt Tarihi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in students %}
+                            <tr>
+                                <td>
+                                    <i class="bi bi-person-circle"></i> {{ student.full_name }}
+                                </td>
+                                <td>{{ student.username }}</td>
+                                <td>{{ student.email }}</td>
+                                <td>{{ student.created_at|date }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-people"></i>
+                    <p>Bu sınıfa henüz öğrenci kaydolmamış.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Yeni Bilgilendirme Modal -->
+<div class="modal fade" id="createAnnouncementModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-megaphone"></i> Yeni Bilgilendirme
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('create_announcement', class_id=cls.id) }}" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="ann_title" class="form-label">Başlık</label>
+                        <input type="text" class="form-control" id="ann_title" name="title" 
+                               placeholder="Örn: Sınav Tarihi Açıklandı" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="ann_content" class="form-label">İçerik</label>
+                        <textarea class="form-control" id="ann_content" name="content" 
+                                  rows="5" placeholder="Bilgilendirme içeriği..." required></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="is_important" name="is_important">
+                            <label class="form-check-label" for="is_important">
+                                <i class="bi bi-exclamation-triangle-fill text-warning"></i> <strong>Önemli bilgilendirme</strong> olarak işaretle
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="ann_file" class="form-label">
+                            <i class="bi bi-paperclip"></i> Dosya Ekle (İsteğe bağlı)
+                        </label>
+                        <input type="file" class="form-control" id="ann_file" name="file" accept=".pdf,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.txt,.jpg,.jpeg,.png">
+                        <small class="form-text text-muted">
+                            PDF, Word, Excel, PowerPoint, Resim veya Metin dosyası ekleyebilirsiniz
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-send"></i> Yayınla
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Yeni Ödev Modal -->
+<div class="modal fade" id="createAssignmentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-plus-circle"></i> Yeni Ödev Ver
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('create_assignment', class_id=cls.id) }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Ödev Başlığı</label>
+                        <input type="text" class="form-control" id="title" name="title" 
+                               placeholder="Örn: İlk Python Programı" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Ödev Açıklaması</label>
+                        <textarea class="form-control" id="description" name="description" 
+                                  rows="4" placeholder="Ödevin detaylı açıklaması..." required></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="due_date" class="form-label">Son Teslim Tarihi</label>
+                            <input type="datetime-local" class="form-control" id="due_date" name="due_date" required>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="max_score" class="form-label">Maksimum Puan</label>
+                            <input type="number" class="form-control" id="max_score" name="max_score" 
+                                   value="100" min="1" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> Ödevi Oluştur
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+// datetime.utcnow() için
+const now = () => new Date();
+</script>
+{% endblock %}
+{% endblock %}
+

@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Sınıf Yönetimi - TÜBİTAK 2209{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="bi bi-book"></i> Sınıf Yönetimi</h1>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createClassModal">
+            <i class="bi bi-plus-circle"></i> Yeni Sınıf Oluştur
+        </button>
+    </div>
+</div>
+
+<!-- Sınıflar -->
+<div class="row">
+    {% if classes %}
+        {% for class in classes %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card class-card h-100 {% if not class.is_active %}class-card-inactive{% endif %}">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-book-fill text-primary"></i> {{ class.name }}
+                    </h5>
+                    <p class="card-text">
+                        <strong>Kod:</strong> <span class="badge bg-info">{{ class.code }}</span><br>
+                        <strong>Açıklama:</strong> {{ class.description or 'Açıklama yok' }}<br>
+                        <strong>Öğrenci Sayısı:</strong> {{ class.students.count() }}<br>
+                        <strong>Ödev Sayısı:</strong> {{ class.assignments|length }}
+                    </p>
+                    
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('admin_class_detail', class_id=class.id) }}" 
+                           class="btn btn-outline-primary">
+                            <i class="bi bi-eye"></i> Detayları Gör
+                        </a>
+                        <form method="POST" action="{{ url_for('delete_class', class_id=class.id) }}" 
+                              onsubmit="return confirm('Bu sınıfı silmek istediğinizden emin misiniz?');" 
+                              class="d-inline">
+                            <button type="submit" class="btn btn-outline-danger w-100">
+                                <i class="bi bi-trash"></i> Sınıfı Sil
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <div class="card-footer text-muted small">
+                    Oluşturulma: {{ class.created_at|date }}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="col-12">
+        <div class="empty-state">
+            <i class="bi bi-book"></i>
+            <h5>Henüz sınıf oluşturulmamış</h5>
+            <p>Yukarıdaki "Yeni Sınıf Oluştur" butonunu kullanarak ilk sınıfınızı oluşturun.</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Yeni Sınıf Modal -->
+<div class="modal fade" id="createClassModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-plus-circle"></i> Yeni Sınıf Oluştur
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('create_class') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Sınıf Adı</label>
+                        <input type="text" class="form-control" id="name" name="name" 
+                               placeholder="Örn: Python Programlama" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="code" class="form-label">Sınıf Kodu</label>
+                        <input type="text" class="form-control" id="code" name="code" 
+                               placeholder="Örn: PYTH2024" required>
+                        <small class="form-text text-muted">
+                            Öğrenciler bu kodu kullanarak sınıfa katılacak
+                        </small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Açıklama (İsteğe bağlı)</label>
+                        <textarea class="form-control" id="description" name="description" 
+                                  rows="3" placeholder="Sınıf hakkında kısa açıklama..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> Oluştur
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

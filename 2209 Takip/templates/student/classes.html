@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Sınıflarım - TÜBİTAK 2209{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4"><i class="bi bi-book"></i> Sınıflarım</h1>
+    </div>
+</div>
+
+<!-- Kayıtlı Sınıflar -->
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-bookmark-check"></i> Kayıtlı Sınıflarım ({{ my_classes|length }})
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if my_classes %}
+                <div class="row">
+                    {% for class in my_classes %}
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card class-card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="bi bi-book-fill text-primary"></i> {{ class.name }}
+                                </h5>
+                                <p class="card-text">
+                                    <strong>Kod:</strong> <span class="badge bg-info">{{ class.code }}</span><br>
+                                    <strong>Açıklama:</strong> {{ class.description or 'Yok' }}<br>
+                                    <strong>Ödev Sayısı:</strong> {{ class.assignments|length }}
+                                </p>
+                                
+                                <div class="d-grid gap-2">
+                                    <a href="{{ url_for('student_class_assignments', class_id=class.id) }}" 
+                                       class="btn btn-primary">
+                                        <i class="bi bi-eye"></i> Ödevleri Gör
+                                    </a>
+                                    <form method="POST" action="{{ url_for('leave_class', class_id=class.id) }}" 
+                                          onsubmit="return confirm('Bu sınıftan ayrılmak istediğinizden emin misiniz?');">
+                                        <button type="submit" class="btn btn-outline-danger w-100">
+                                            <i class="bi bi-box-arrow-right"></i> Sınıftan Ayrıl
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-book"></i>
+                    <h5>Henüz hiçbir sınıfa katılmadınız</h5>
+                    <p>Aşağıdaki mevcut sınıflardan birine katılabilirsiniz.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Katılınabilir Sınıflar -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-plus-circle"></i> Katılınabilir Sınıflar ({{ available_classes|length }})
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if available_classes %}
+                <div class="row">
+                    {% for class in available_classes %}
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card border-success h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="bi bi-book text-success"></i> {{ class.name }}
+                                </h5>
+                                <p class="card-text">
+                                    <strong>Kod:</strong> <span class="badge bg-success">{{ class.code }}</span><br>
+                                    <strong>Açıklama:</strong> {{ class.description or 'Yok' }}<br>
+                                    <strong>Kayıtlı Öğrenci:</strong> {{ class.students.count() }}
+                                </p>
+                                
+                                <form method="POST" action="{{ url_for('enroll_class', class_id=class.id) }}">
+                                    <button type="submit" class="btn btn-success w-100">
+                                        <i class="bi bi-check-circle"></i> Katıl
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-check-circle"></i>
+                    <h5>Tüm sınıflara kayıtlısınız!</h5>
+                    <p>Şu anda katılabileceğiniz başka sınıf yok.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
