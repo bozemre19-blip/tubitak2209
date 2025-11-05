@@ -24,6 +24,18 @@ main.container {
 </style>
 <div class="login-page">
     <div class="login-container">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show login-alert" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
         <div class="login-card">
             <!-- Logo ve Başlık -->
             <div class="login-header">
@@ -355,6 +367,26 @@ main.container {
 
 .register-link i {
     font-size: 0.9rem;
+}
+
+.login-alert {
+    position: relative;
+    z-index: 10000;
+    margin-bottom: 1rem;
+    max-width: 420px;
+    width: 100%;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Responsive */
