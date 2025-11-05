@@ -60,6 +60,7 @@
                         <form method="POST" action="{{ url_for('delete_class', class_id=class.id) }}" 
                               onsubmit="return confirm('Bu sınıfı silmek istediğinizden emin misiniz?');" 
                               class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                             <button type="submit" class="btn btn-outline-danger w-100">
                                 <i class="bi bi-trash"></i> Sınıfı Sil
                             </button>
@@ -94,6 +95,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ url_for('create_class') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="name" class="form-label">Sınıf Adı</label>
@@ -138,6 +140,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ url_for('bulk_create_announcement') }}" id="bulkAnnouncementForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="modal-body">
                     <div class="alert alert-info">
                         <i class="bi bi-info-circle"></i> Seçili sınıfların tüm öğrencilerine bilgilendirme gönderilecek.
@@ -197,6 +200,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ url_for('bulk_create_assignment') }}" id="bulkAssignmentForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="modal-body">
                     <div class="alert alert-info">
                         <i class="bi bi-info-circle"></i> Seçili sınıfların tüm öğrencilerine ödev verilecek.

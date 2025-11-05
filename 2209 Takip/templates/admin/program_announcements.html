@@ -89,6 +89,7 @@
                                   action="{{ url_for('delete_program_announcement', announcement_id=announcement.id) }}" 
                                   class="d-inline"
                                   onsubmit="return confirm('Bu duyuruyu silmek istediğinizden emin misiniz?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                 <button type="submit" class="btn btn-sm btn-danger">
                                     <i class="bi bi-trash"></i> Sil
                                 </button>
@@ -107,6 +108,7 @@
                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
                                 <form method="POST" action="{{ url_for('update_program_announcement', announcement_id=announcement.id) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                     <div class="modal-body">
                                         <div class="mb-3">
                                             <label for="edit_title_{{ announcement.id }}" class="form-label">Başlık</label>
@@ -187,6 +189,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ url_for('create_program_announcement') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="modal-body">
                     <div class="alert alert-info">
                         <i class="bi bi-info-circle"></i> Bu duyuru tüm öğrencilerin dashboard'ında görünecektir.

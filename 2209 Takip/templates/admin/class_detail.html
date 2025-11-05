@@ -105,6 +105,7 @@
                                 </a>
                                 <form method="POST" action="{{ url_for('delete_announcement', announcement_id=announcement.id) }}" 
                                       onsubmit="return confirm('Bu bilgilendirmeyi silmek istediğinizden emin misiniz?');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                     <button type="submit" class="btn btn-sm btn-outline-danger">
                                         <i class="bi bi-trash"></i>
                                     </button>
@@ -177,6 +178,7 @@
                                         </a>
                                         <form method="POST" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" 
                                               onsubmit="return confirm('Bu ödevi silmek istediğinizden emin misiniz? Ödev ile birlikte tüm teslimler de silinecektir!');" class="d-inline">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                             <button type="submit" class="btn btn-sm btn-outline-danger" title="Sil">
                                                 <i class="bi bi-trash"></i>
                                             </button>
@@ -233,6 +235,7 @@
                                 <td>
                                     <form method="POST" action="{{ url_for('admin_remove_student', class_id=cls.id, student_id=student.id) }}" 
                                           onsubmit="return confirm('{{ student.full_name }} adlı öğrenciyi bu sınıftan çıkarmak istediğinizden emin misiniz?');" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                         <button type="submit" class="btn btn-sm btn-outline-danger" title="Sınıftan Çıkar">
                                             <i class="bi bi-person-dash"></i> Çıkar
                                         </button>
@@ -265,6 +268,7 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ url_for('create_announcement', class_id=cls.id) }}" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="ann_title" class="form-label">Başlık</label>
@@ -319,6 +323,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ url_for('create_assignment', class_id=cls.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="title" class="form-label">Ödev Başlığı</label>

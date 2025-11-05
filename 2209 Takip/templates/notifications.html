@@ -9,6 +9,7 @@
             <h1><i class="bi bi-bell-fill"></i> Bildirimler</h1>
             {% if notifications %}
             <form method="POST" action="{{ url_for('mark_all_notifications_read') }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <button type="submit" class="btn btn-sm btn-outline-primary">
                     <i class="bi bi-check-all"></i> Tümünü Okundu İşaretle
                 </button>
@@ -41,12 +42,14 @@
                     <div class="ms-3">
                         {% if notification.link %}
                         <form method="POST" action="{{ url_for('mark_notification_read', notification_id=notification.id) }}" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                             <button type="submit" class="btn btn-sm btn-primary">
                                 <i class="bi bi-box-arrow-up-right"></i> Git
                             </button>
                         </form>
                         {% elif not notification.is_read %}
                         <form method="POST" action="{{ url_for('mark_notification_read', notification_id=notification.id) }}" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                             <button type="submit" class="btn btn-sm btn-outline-secondary">
                                 <i class="bi bi-check"></i> Okundu
                             </button>

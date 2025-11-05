@@ -171,6 +171,7 @@
                                 <form method="POST" 
                                       action="{{ url_for('submit_assignment', assignment_id=item.assignment.id) }}" 
                                       enctype="multipart/form-data">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                     <div class="mb-2">
                                         <label class="form-label small">Yeni dosya seçin:</label>
                                         <input type="file" class="form-control form-control-sm" 
@@ -199,6 +200,7 @@
                                 <form method="POST" 
                                       action="{{ url_for('submit_assignment', assignment_id=item.assignment.id) }}" 
                                       enctype="multipart/form-data">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                     <div class="mb-3">
                                         <label class="form-label">Dosya Seçin</label>
                                         <input type="file" class="form-control" 

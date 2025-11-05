@@ -107,6 +107,7 @@
                                     {% endif %}
                                     {% if not is_read %}
                                     <form method="POST" action="{{ url_for('mark_announcement_read', announcement_id=item.announcement.id) }}" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                         <button type="submit" class="btn btn-sm btn-success">
                                             <i class="bi bi-check-circle"></i> Okundu İşaretle
                                         </button>

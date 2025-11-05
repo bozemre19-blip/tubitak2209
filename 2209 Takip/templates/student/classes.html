@@ -41,6 +41,7 @@
                                     </a>
                                     <form method="POST" action="{{ url_for('leave_class', class_id=class.id) }}" 
                                           onsubmit="return confirm('Bu sınıftan ayrılmak istediğinizden emin misiniz?');">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                         <button type="submit" class="btn btn-outline-danger w-100">
                                             <i class="bi bi-box-arrow-right"></i> Sınıftan Ayrıl
                                         </button>
@@ -89,6 +90,7 @@
                                 </p>
                                 
                                 <form method="POST" action="{{ url_for('enroll_class', class_id=class.id) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                     <button type="submit" class="btn btn-success w-100">
                                         <i class="bi bi-check-circle"></i> Katıl
                                     </button>
