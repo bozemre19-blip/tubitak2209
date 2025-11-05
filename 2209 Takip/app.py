@@ -6,7 +6,15 @@ from config import Config
 from models import db, User, Class, Assignment, Submission, Announcement, AnnouncementRead, Notification, ProgramAnnouncement
 import os
 from datetime import datetime
-from tubitak_scraper import fetch_tubitak_announcements, get_latest_important_info
+try:
+    from tubitak_scraper import fetch_tubitak_announcements, get_latest_important_info
+except ImportError as e:
+    print(f"⚠️ TÜBİTAK scraper import hatası: {e}")
+    # Fallback fonksiyonlar
+    def get_latest_important_info():
+        return None
+    def fetch_tubitak_announcements():
+        return {'success': False, 'error': 'Scraper modülü yüklenemedi'}
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -125,14 +133,18 @@ def notify_students_new_announcement(announcement, class_obj):
 
 def notify_teacher_student_enrolled(teacher_id, student, class_obj):
     """Öğrenci sınıfa katıldığında öğretmene bildir"""
-    create_notification(
-        user_id=teacher_id,
-        title='Yeni Öğrenci',
-        message=f'{student.full_name}, {class_obj.name} sınıfına katıldı',
-        notif_type='enrollment',
-        icon='bi-person-plus',
-        link=url_for('admin_class_detail', class_id=class_obj.id)
-    )
+    try:
+        create_notification(
+            user_id=teacher_id,
+            title='Yeni Öğrenci',
+            message=f'{student.full_name}, {class_obj.name} sınıfına katıldı',
+            notif_type='enrollment',
+            icon='bi-person-plus',
+            link=url_for('admin_class_detail', class_id=class_obj.id)
+        )
+    except Exception as e:
+        # Bildirim hatası kritik değil, sadece logla
+        print(f"⚠️ Bildirim gönderme hatası: {e}")
 
 # Create database tables and upload folder
 with app.app_context():
@@ -394,8 +406,12 @@ def dashboard():
             is_active=True
         ).order_by(ProgramAnnouncement.is_important.desc(), ProgramAnnouncement.created_at.desc()).limit(5).all()
         
-        # TÜBİTAK sitesinden otomatik bilgi çek
-        tubitak_info = get_latest_important_info()
+        # TÜBİTAK sitesinden otomatik bilgi çek (hata olursa sessizce devam et)
+        try:
+            tubitak_info = get_latest_important_info()
+        except Exception as e:
+            print(f"⚠️ TÜBİTAK bilgi çekme hatası: {e}")
+            tubitak_info = None
         
         return render_template('admin/dashboard.html',
                              total_students=total_students,
@@ -446,8 +462,12 @@ def dashboard():
             is_active=True
         ).order_by(ProgramAnnouncement.is_important.desc(), ProgramAnnouncement.created_at.desc()).limit(5).all()
         
-        # TÜBİTAK sitesinden otomatik bilgi çek
-        tubitak_info = get_latest_important_info()
+        # TÜBİTAK sitesinden otomatik bilgi çek (hata olursa sessizce devam et)
+        try:
+            tubitak_info = get_latest_important_info()
+        except Exception as e:
+            print(f"⚠️ TÜBİTAK bilgi çekme hatası: {e}")
+            tubitak_info = None
         
         return render_template('student/dashboard.html',
                              my_classes=my_classes,
@@ -655,24 +675,32 @@ def student_classes():
 @app.route('/student/classes/<int:class_id>/enroll', methods=['POST'])
 @login_required
 def enroll_class(class_id):
-    if current_user.role != 'student':
-        flash('Bu işlem için yetkiniz yok!', 'danger')
-        return redirect(url_for('dashboard'))
-    
-    cls = Class.query.get_or_404(class_id)
-    
-    if cls in current_user.enrolled_classes:
-        flash('Bu sınıfa zaten kayıtlısınız!', 'warning')
-    else:
-        current_user.enrolled_classes.append(cls)
-        db.session.commit()
+    try:
+        if current_user.role != 'student':
+            flash('Bu işlem için yetkiniz yok!', 'danger')
+            return redirect(url_for('dashboard'))
         
-        # Öğretmene bildirim gönder
-        notify_teacher_student_enrolled(cls.created_by, current_user, cls)
+        cls = Class.query.get_or_404(class_id)
         
-        flash(f'"{cls.name}" sınıfına başarıyla katıldınız!', 'success')
-    
-    return redirect(url_for('student_classes'))
+        if cls in current_user.enrolled_classes:
+            flash('Bu sınıfa zaten kayıtlısınız!', 'warning')
+        else:
+            current_user.enrolled_classes.append(cls)
+            db.session.commit()
+            
+            # Öğretmene bildirim gönder
+            notify_teacher_student_enrolled(cls.created_by, current_user, cls)
+            
+            flash(f'"{cls.name}" sınıfına başarıyla katıldınız!', 'success')
+        
+        return redirect(url_for('student_classes'))
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Enroll hatası: {e}")
+        import traceback
+        traceback.print_exc()
+        flash('Sınıfa katılırken bir hata oluştu! Lütfen tekrar deneyin.', 'danger')
+        return redirect(url_for('student_classes'))
 
 @app.route('/student/classes/<int:class_id>/leave', methods=['POST'])
 @login_required
