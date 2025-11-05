@@ -6,15 +6,7 @@ from config import Config
 from models import db, User, Class, Assignment, Submission, Announcement, AnnouncementRead, Notification, ProgramAnnouncement
 import os
 from datetime import datetime
-try:
-    from tubitak_scraper import fetch_tubitak_announcements, get_latest_important_info
-except ImportError as e:
-    print(f"⚠️ TÜBİTAK scraper import hatası: {e}")
-    # Fallback fonksiyonlar
-    def get_latest_important_info():
-        return None
-    def fetch_tubitak_announcements():
-        return {'success': False, 'error': 'Scraper modülü yüklenemedi'}
+# TÜBİTAK scraper özelliği kaldırıldı
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -406,13 +398,6 @@ def dashboard():
             is_active=True
         ).order_by(ProgramAnnouncement.is_important.desc(), ProgramAnnouncement.created_at.desc()).limit(5).all()
         
-        # TÜBİTAK sitesinden otomatik bilgi çek (hata olursa sessizce devam et)
-        try:
-            tubitak_info = get_latest_important_info()
-        except Exception as e:
-            print(f"⚠️ TÜBİTAK bilgi çekme hatası: {e}")
-            tubitak_info = None
-        
         return render_template('admin/dashboard.html',
                              total_students=total_students,
                              total_classes=total_classes,
@@ -420,8 +405,7 @@ def dashboard():
                              total_submissions=total_submissions,
                              recent_submissions=recent_submissions,
                              recent_announcements=recent_announcements,
-                             program_announcements=program_announcements,
-                             tubitak_info=tubitak_info)
+                             program_announcements=program_announcements)
     else:
         # Öğrenci için sınıflar ve ödevler
         my_classes = current_user.enrolled_classes
@@ -462,19 +446,11 @@ def dashboard():
             is_active=True
         ).order_by(ProgramAnnouncement.is_important.desc(), ProgramAnnouncement.created_at.desc()).limit(5).all()
         
-        # TÜBİTAK sitesinden otomatik bilgi çek (hata olursa sessizce devam et)
-        try:
-            tubitak_info = get_latest_important_info()
-        except Exception as e:
-            print(f"⚠️ TÜBİTAK bilgi çekme hatası: {e}")
-            tubitak_info = None
-        
         return render_template('student/dashboard.html',
                              my_classes=my_classes,
                              upcoming_assignments=upcoming_assignments[:5],
                              recent_announcements=recent_announcements[:5],
-                             program_announcements=program_announcements,
-                             tubitak_info=tubitak_info)
+                             program_announcements=program_announcements)
 
 # ============ Admin: Sınıf Yönetimi ============
 
