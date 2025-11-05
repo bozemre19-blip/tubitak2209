@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, send_file
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_mail import Mail, Message
+from flask_wtf.csrf import CSRFProtect
 from werkzeug.utils import secure_filename
 from config import Config
 from models import db, User, Class, Assignment, Submission, Announcement, AnnouncementRead, Notification, ProgramAnnouncement
@@ -14,6 +15,7 @@ app.config.from_object(Config)
 # Initialize extensions
 db.init_app(app)
 mail = Mail(app)
+csrf = CSRFProtect(app)  # CSRF protection
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
@@ -1391,7 +1393,16 @@ def download_announcement(announcement_id):
         flash('Dosya bulunamadı!', 'danger')
         return redirect(url_for('dashboard'))
     
-    return send_file(announcement.file_path, as_attachment=True, download_name=announcement.file_name)
+    # Path traversal koruması - dosya yolunu normalize et ve kontrol et
+    file_path = os.path.normpath(announcement.file_path)
+    upload_dir = os.path.normpath(app.config['UPLOAD_FOLDER'])
+    
+    # Path traversal kontrolü - dosya upload klasörü dışına çıkmamalı
+    if not file_path.startswith(upload_dir):
+        flash('Geçersiz dosya yolu!', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    return send_file(file_path, as_attachment=True, download_name=announcement.file_name)
 
 # ============ Dosya İndirme ============
 
@@ -1410,11 +1421,20 @@ def download_submission(submission_id):
         flash('Bu dosyaya erişim yetkiniz yok!', 'danger')
         return redirect(url_for('dashboard'))
     
-    if not os.path.exists(submission.file_path):
+    if not submission.file_path or not os.path.exists(submission.file_path):
         flash('Dosya bulunamadı!', 'danger')
         return redirect(url_for('dashboard'))
     
-    return send_file(submission.file_path, as_attachment=True, download_name=submission.file_name)
+    # Path traversal koruması - dosya yolunu normalize et ve kontrol et
+    file_path = os.path.normpath(submission.file_path)
+    upload_dir = os.path.normpath(app.config['UPLOAD_FOLDER'])
+    
+    # Path traversal kontrolü - dosya upload klasörü dışına çıkmamalı
+    if not file_path.startswith(upload_dir):
+        flash('Geçersiz dosya yolu!', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    return send_file(file_path, as_attachment=True, download_name=submission.file_name)
 
 # ============ Template Filtreleri ============
 
