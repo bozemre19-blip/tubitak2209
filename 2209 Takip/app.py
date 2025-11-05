@@ -37,8 +37,11 @@ def send_email_notification(to_email, subject, body):
             sender=app.config['MAIL_DEFAULT_SENDER']
         )
         mail.send(msg)
+        print(f"✅ Email gönderildi: {to_email} - {subject}")
     except Exception as e:
-        print(f"Email gönderme hatası: {e}")
+        # Email gönderme hatası kritik değil, sadece logla
+        print(f"⚠️ Email gönderme hatası ({to_email}): {e}")
+        # Site içi bildirim zaten oluşturuldu, email hatası kritik değil
 
 def create_notification(user_id, title, message, notif_type, icon='bi-bell', link=None, send_email=True):
     """Bildirim oluştur ve email gönder"""
@@ -58,13 +61,14 @@ def create_notification(user_id, title, message, notif_type, icon='bi-bell', lin
     if send_email:
         user = User.query.get(user_id)
         if user and user.email:
+            site_url = app.config.get('BASE_URL', 'https://tubitak2209.onrender.com')
             email_body = f"""
 Merhaba {user.full_name},
 
 {message}
 
 Detaylar için sisteme giriş yapabilirsiniz:
-http://127.0.0.1:5000
+{site_url}
 
 ---
 TÜBİTAK 2209-A Öğrenci Takip Sistemi
