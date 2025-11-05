@@ -36,6 +36,7 @@ class Config:
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_USERNAME') or '2209takip@gmail.com'
     MAIL_MAX_EMAILS = None
     MAIL_ASCII_ATTACHMENTS = False
+    MAIL_TIMEOUT = 3  # 3 saniye timeout (Render'da 30 saniye limit var)
     
     # Site URL (Render'da veya local'de)
     BASE_URL = os.environ.get('BASE_URL') or 'https://tubitak2209.onrender.com'

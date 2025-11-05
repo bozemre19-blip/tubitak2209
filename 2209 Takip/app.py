@@ -29,9 +29,15 @@ def allowed_file(filename):
 
 # ============ Bildirim Sistemi ============
 
-def send_email_notification(to_email, subject, body, html_body=None):
-    """Email bildirimi gönder"""
+def send_email_notification(to_email, subject, body, html_body=None, timeout=5):
+    """Email bildirimi gönder (timeout ile)"""
     try:
+        import signal
+        
+        # Timeout handler (sadece Unix sistemlerde çalışır)
+        def timeout_handler(signum, frame):
+            raise TimeoutError("Email gönderimi timeout")
+        
         msg = Message(
             subject=f"Öğrenci Takip Sistemi - {subject}",
             recipients=[to_email],
@@ -40,9 +46,22 @@ def send_email_notification(to_email, subject, body, html_body=None):
         )
         if html_body:
             msg.html = html_body
-        mail.send(msg)
-        print(f"✅ Email gönderildi: {to_email} - {subject}")
-        return True
+        
+        # Email gönderimini timeout ile sınırla (sadece Unix'te)
+        try:
+            if hasattr(signal, 'SIGALRM'):
+                signal.signal(signal.SIGALRM, timeout_handler)
+                signal.alarm(timeout)
+            mail.send(msg)
+            if hasattr(signal, 'SIGALRM'):
+                signal.alarm(0)  # Timeout'u iptal et
+            print(f"✅ Email gönderildi: {to_email} - {subject}")
+            return True
+        except TimeoutError:
+            print(f"⏱️ Email gönderimi timeout ({to_email}): {timeout} saniye")
+            if hasattr(signal, 'SIGALRM'):
+                signal.alarm(0)
+            return False
     except Exception as e:
         # Email gönderme hatası kritik değil, sadece logla
         print(f"⚠️ Email gönderme hatası ({to_email}): {e}")
@@ -338,12 +357,12 @@ def register():
             db.session.add(user)
             db.session.commit()
             
-            # Email doğrulama linki oluştur
+            # Email doğrulama linki oluştur ve gönder (timeout ile)
             try:
                 site_url = app.config.get('BASE_URL', request.url_root.rstrip('/'))
                 verification_url = f"{site_url}{url_for('verify_email', token=verification_token)}"
                 
-                # Email gönder (try-except ile korumalı)
+                # Email gönder (3 saniye timeout - Render'da 30 saniye limit var)
                 role_text = 'öğretmen' if role == 'admin' else 'öğrenci'
                 email_subject = "Email Doğrulama - Öğrenci Takip Sistemi"
                 email_body = f"""
@@ -384,7 +403,8 @@ Eğer bu kayıt işlemini siz yapmadıysanız, bu emaili görmezden gelebilirsin
                 </html>
                 """
                 
-                email_sent = send_email_notification(email, email_subject, email_body, email_html)
+                # Email gönderimi 3 saniye timeout ile (Windows'ta çalışmayabilir, ama hata yakalanır)
+                email_sent = send_email_notification(email, email_subject, email_body, email_html, timeout=3)
                 
                 if email_sent:
                     flash(f'Kayıt başarılı! Email adresinize doğrulama linki gönderildi. Lütfen email kutunuzu kontrol edin.', 'success')
