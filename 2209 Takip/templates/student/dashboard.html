@@ -11,6 +11,39 @@
     </div>
 </div>
 
+<!-- TÜBİTAK Sitesinden Otomatik Güncel Bilgi -->
+{% if tubitak_info %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-danger border-3">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-arrow-repeat"></i> TÜBİTAK 2209-A Güncel Bilgi (Otomatik)
+                </h5>
+            </div>
+            <div class="card-body bg-light">
+                <div class="alert alert-info mb-0" role="alert">
+                    <h6 class="alert-heading">
+                        <i class="bi bi-info-circle-fill"></i> {{ tubitak_info.title }}
+                    </h6>
+                    <p class="mb-2">{{ tubitak_info.content }}</p>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a href="{{ tubitak_info.link }}" target="_blank" class="btn btn-sm btn-primary">
+                            <i class="bi bi-box-arrow-up-right"></i> Detaylı Bilgi (TÜBİTAK Sitesi)
+                        </a>
+                    </div>
+                    <hr>
+                    <small class="text-muted">
+                        <i class="bi bi-clock"></i> Son güncelleme: {{ tubitak_info.fetched_at|datetime }}
+                        <span class="badge bg-success ms-2">Canlı Veri</span>
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- TÜBİTAK 2209-A Program Duyuruları -->
 {% if program_announcements %}
 <div class="row mb-4">

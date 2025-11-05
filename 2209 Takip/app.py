@@ -6,6 +6,7 @@ from config import Config
 from models import db, User, Class, Assignment, Submission, Announcement, AnnouncementRead, Notification, ProgramAnnouncement
 import os
 from datetime import datetime
+from tubitak_scraper import fetch_tubitak_announcements, get_latest_important_info
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -393,6 +394,9 @@ def dashboard():
             is_active=True
         ).order_by(ProgramAnnouncement.is_important.desc(), ProgramAnnouncement.created_at.desc()).limit(5).all()
         
+        # TÜBİTAK sitesinden otomatik bilgi çek
+        tubitak_info = get_latest_important_info()
+        
         return render_template('admin/dashboard.html',
                              total_students=total_students,
                              total_classes=total_classes,
@@ -400,7 +404,8 @@ def dashboard():
                              total_submissions=total_submissions,
                              recent_submissions=recent_submissions,
                              recent_announcements=recent_announcements,
-                             program_announcements=program_announcements)
+                             program_announcements=program_announcements,
+                             tubitak_info=tubitak_info)
     else:
         # Öğrenci için sınıflar ve ödevler
         my_classes = current_user.enrolled_classes
@@ -441,11 +446,15 @@ def dashboard():
             is_active=True
         ).order_by(ProgramAnnouncement.is_important.desc(), ProgramAnnouncement.created_at.desc()).limit(5).all()
         
+        # TÜBİTAK sitesinden otomatik bilgi çek
+        tubitak_info = get_latest_important_info()
+        
         return render_template('student/dashboard.html',
                              my_classes=my_classes,
                              upcoming_assignments=upcoming_assignments[:5],
                              recent_announcements=recent_announcements[:5],
-                             program_announcements=program_announcements)
+                             program_announcements=program_announcements,
+                             tubitak_info=tubitak_info)
 
 # ============ Admin: Sınıf Yönetimi ============
 
