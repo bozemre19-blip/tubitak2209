@@ -36,6 +36,7 @@ main.container {
             
             <!-- Form -->
             <form method="POST" action="{{ url_for('login') }}" class="login-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="form-group">
                     <label for="username" class="form-label-icon">
                         <i class="bi bi-person-fill"></i>
