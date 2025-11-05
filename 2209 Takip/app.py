@@ -113,15 +113,25 @@ def notify_teacher_new_submission(teacher_id, student, assignment, class_obj):
 
 def notify_students_new_announcement(announcement, class_obj):
     """Yeni bilgilendirme eklendiğinde öğrencilere bildir"""
-    for student in class_obj.students:
-        create_notification(
-            user_id=student.id,
-            title='Yeni Bilgilendirme',
-            message=f'{class_obj.name}: {announcement.title}',
-            notif_type='announcement',
-            icon='bi-megaphone' if announcement.is_important else 'bi-info-circle',
-            link=url_for('student_classes')
-        )
+    try:
+        students = list(class_obj.students)
+        for student in students:
+            try:
+                create_notification(
+                    user_id=student.id,
+                    title='Yeni Bilgilendirme',
+                    message=f'{class_obj.name}: {announcement.title}',
+                    notif_type='announcement',
+                    icon='bi-megaphone' if announcement.is_important else 'bi-info-circle',
+                    link=url_for('student_classes'),
+                    send_email=False  # Email göndermeyi devre dışı bırak (timeout olmasın)
+                )
+            except Exception as e:
+                # Tek bir öğrenciye bildirim göndermede hata olsa bile devam et
+                print(f"⚠️ Öğrenci {student.id} bildirim hatası: {e}")
+    except Exception as e:
+        # Bildirim hatası kritik değil, sadece logla
+        print(f"⚠️ Toplu bildirim gönderme hatası: {e}")
 
 def notify_teacher_student_enrolled(teacher_id, student, class_obj):
     """Öğrenci sınıfa katıldığında öğretmene bildir"""
@@ -810,49 +820,57 @@ def submit_assignment(assignment_id):
 @app.route('/admin/classes/<int:class_id>/announcements/create', methods=['POST'])
 @login_required
 def create_announcement(class_id):
-    if current_user.role != 'admin':
-        flash('Bu işlem için yetkiniz yok!', 'danger')
-        return redirect(url_for('dashboard'))
-    
-    cls = Class.query.get_or_404(class_id)
-    
-    # Sadece kendi oluşturduğu sınıfa bilgilendirme yapabilir
-    if cls.created_by != current_user.id:
-        flash('Bu sınıfa bilgilendirme yapma yetkiniz yok!', 'danger')
-        return redirect(url_for('admin_classes'))
-    
-    title = request.form.get('title')
-    content = request.form.get('content')
-    is_important = request.form.get('is_important') == 'on'
-    
-    announcement = Announcement(
-        title=title,
-        content=content,
-        class_id=class_id,
-        created_by=current_user.id,
-        is_important=is_important
-    )
-    
-    # Dosya yüklendiyse
-    if 'file' in request.files:
-        file = request.files['file']
-        if file and file.filename != '' and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            unique_filename = f"announcement_{class_id}_{timestamp}_{filename}"
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
-            file.save(file_path)
-            announcement.file_name = filename
-            announcement.file_path = file_path
-    
-    db.session.add(announcement)
-    db.session.commit()
-    
-    # Öğrencilere bildirim gönder
-    notify_students_new_announcement(announcement, cls)
-    
-    flash(f'Bilgilendirme "{title}" başarıyla yayınlandı!', 'success')
-    return redirect(url_for('admin_class_detail', class_id=class_id))
+    try:
+        if current_user.role != 'admin':
+            flash('Bu işlem için yetkiniz yok!', 'danger')
+            return redirect(url_for('dashboard'))
+        
+        cls = Class.query.get_or_404(class_id)
+        
+        # Sadece kendi oluşturduğu sınıfa bilgilendirme yapabilir
+        if cls.created_by != current_user.id:
+            flash('Bu sınıfa bilgilendirme yapma yetkiniz yok!', 'danger')
+            return redirect(url_for('admin_classes'))
+        
+        title = request.form.get('title')
+        content = request.form.get('content')
+        is_important = request.form.get('is_important') == 'on'
+        
+        announcement = Announcement(
+            title=title,
+            content=content,
+            class_id=class_id,
+            created_by=current_user.id,
+            is_important=is_important
+        )
+        
+        # Dosya yüklendiyse
+        if 'file' in request.files:
+            file = request.files['file']
+            if file and file.filename != '' and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                unique_filename = f"announcement_{class_id}_{timestamp}_{filename}"
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+                file.save(file_path)
+                announcement.file_name = filename
+                announcement.file_path = file_path
+        
+        db.session.add(announcement)
+        db.session.commit()
+        
+        # Öğrencilere bildirim gönder (hata olsa bile devam et)
+        notify_students_new_announcement(announcement, cls)
+        
+        flash(f'Bilgilendirme "{title}" başarıyla yayınlandı!', 'success')
+        return redirect(url_for('admin_class_detail', class_id=class_id))
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Bilgilendirme oluşturma hatası: {e}")
+        import traceback
+        traceback.print_exc()
+        flash('Bilgilendirme oluşturulurken bir hata oluştu! Lütfen tekrar deneyin.', 'danger')
+        return redirect(url_for('admin_class_detail', class_id=class_id))
 
 @app.route('/admin/announcements/bulk-create', methods=['POST'])
 @login_required

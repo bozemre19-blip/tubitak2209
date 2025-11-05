@@ -341,8 +341,10 @@
 
 {% block extra_js %}
 <script>
-// datetime.utcnow() için
-const now = () => new Date();
+// datetime.utcnow() için - güvenli tanımlama
+if (typeof now === 'undefined') {
+    const now = () => new Date();
+}
 </script>
 {% endblock %}
 {% endblock %}
