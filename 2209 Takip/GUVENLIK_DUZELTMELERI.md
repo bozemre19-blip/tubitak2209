@@ -139,8 +139,8 @@ Aşağıdaki template dosyalarına CSRF token eklenmeli:
    - delete_program_announcement
 
 8. **templates/student/classes.html**
-   - enroll_class
-   - leave_class
+   - enroll_by_code ✅
+   - leave_class ✅
 
 9. **templates/student/assignments.html**
    - submit_assignment
