@@ -29,39 +29,56 @@ def allowed_file(filename):
 
 # ============ Bildirim Sistemi ============
 
-def send_email_notification(to_email, subject, body, html_body=None, timeout=5):
-    """Email bildirimi gönder (timeout ile)"""
+def send_email_notification(to_email, subject, body, html_body=None, timeout=3):
+    """Email bildirimi gönder (background thread ile, timeout olursa iptal)"""
     try:
-        import signal
+        import threading
+        import queue
         
-        # Timeout handler (sadece Unix sistemlerde çalışır)
-        def timeout_handler(signum, frame):
-            raise TimeoutError("Email gönderimi timeout")
+        result_queue = queue.Queue()
+        error_queue = queue.Queue()
         
-        msg = Message(
-            subject=f"Öğrenci Takip Sistemi - {subject}",
-            recipients=[to_email],
-            body=body,
-            sender=app.config['MAIL_DEFAULT_SENDER']
-        )
-        if html_body:
-            msg.html = html_body
+        def send_email_thread():
+            """Email gönderimini yapan thread"""
+            try:
+                msg = Message(
+                    subject=f"Öğrenci Takip Sistemi - {subject}",
+                    recipients=[to_email],
+                    body=body,
+                    sender=app.config['MAIL_DEFAULT_SENDER']
+                )
+                if html_body:
+                    msg.html = html_body
+                
+                with app.app_context():
+                    mail.send(msg)
+                result_queue.put(True)
+                print(f"✅ Email gönderildi: {to_email} - {subject}")
+            except Exception as e:
+                error_queue.put(e)
+                print(f"⚠️ Email gönderme hatası ({to_email}): {e}")
         
-        # Email gönderimini timeout ile sınırla (sadece Unix'te)
-        try:
-            if hasattr(signal, 'SIGALRM'):
-                signal.signal(signal.SIGALRM, timeout_handler)
-                signal.alarm(timeout)
-            mail.send(msg)
-            if hasattr(signal, 'SIGALRM'):
-                signal.alarm(0)  # Timeout'u iptal et
-            print(f"✅ Email gönderildi: {to_email} - {subject}")
-            return True
-        except TimeoutError:
-            print(f"⏱️ Email gönderimi timeout ({to_email}): {timeout} saniye")
-            if hasattr(signal, 'SIGALRM'):
-                signal.alarm(0)
+        # Email gönderimini background thread'de başlat
+        thread = threading.Thread(target=send_email_thread, daemon=True)
+        thread.start()
+        
+        # Thread'in timeout süresi içinde bitmesini bekle
+        thread.join(timeout=timeout)
+        
+        # Thread hala çalışıyorsa timeout oldu
+        if thread.is_alive():
+            print(f"⏱️ Email gönderimi timeout ({to_email}): {timeout} saniye - işlem devam ediyor ama response dönülüyor")
+            return False  # Timeout oldu ama thread arka planda devam edebilir
+        
+        # Sonuç kontrolü
+        if not error_queue.empty():
             return False
+        
+        if not result_queue.empty():
+            return result_queue.get()
+        
+        return False
+        
     except Exception as e:
         # Email gönderme hatası kritik değil, sadece logla
         print(f"⚠️ Email gönderme hatası ({to_email}): {e}")
