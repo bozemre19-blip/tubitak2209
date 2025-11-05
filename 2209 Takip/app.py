@@ -79,15 +79,25 @@ Bu otomatik bir bildirimdir.
 
 def notify_students_new_assignment(assignment, class_obj):
     """Yeni ödev eklendiğinde öğrencilere bildir"""
-    for student in class_obj.students:
-        create_notification(
-            user_id=student.id,
-            title='Yeni Ödev',
-            message=f'{class_obj.name} sınıfında yeni ödev: {assignment.title}',
-            notif_type='assignment',
-            icon='bi-file-earmark-text',
-            link=url_for('student_class_assignments', class_id=class_obj.id)
-        )
+    try:
+        students = list(class_obj.students)
+        for student in students:
+            try:
+                create_notification(
+                    user_id=student.id,
+                    title='Yeni Ödev',
+                    message=f'{class_obj.name} sınıfında yeni ödev: {assignment.title}',
+                    notif_type='assignment',
+                    icon='bi-file-earmark-text',
+                    link=url_for('student_class_assignments', class_id=class_obj.id),
+                    send_email=False  # Email göndermeyi devre dışı bırak (timeout olmasın)
+                )
+            except Exception as e:
+                # Tek bir öğrenciye bildirim göndermede hata olsa bile devam et
+                print(f"⚠️ Öğrenci {student.id} bildirim hatası: {e}")
+    except Exception as e:
+        # Bildirim hatası kritik değil, sadece logla
+        print(f"⚠️ Toplu bildirim gönderme hatası: {e}")
 
 def notify_student_graded(submission, assignment, class_obj):
     """Ödev notlandırıldığında öğrenciye bildir"""
@@ -548,40 +558,56 @@ def admin_class_detail(class_id):
 @app.route('/admin/classes/<int:class_id>/assignments/create', methods=['POST'])
 @login_required
 def create_assignment(class_id):
-    if current_user.role != 'admin':
-        flash('Bu işlem için yetkiniz yok!', 'danger')
-        return redirect(url_for('dashboard'))
-    
-    cls = Class.query.get_or_404(class_id)
-    
-    # Sadece kendi oluşturduğu sınıfa ödev verebilir
-    if cls.created_by != current_user.id:
-        flash('Bu sınıfa ödev verme yetkiniz yok!', 'danger')
-        return redirect(url_for('admin_classes'))
-    
-    title = request.form.get('title')
-    description = request.form.get('description')
-    due_date_str = request.form.get('due_date')
-    max_score = request.form.get('max_score', 100)
-    
-    due_date = datetime.strptime(due_date_str, '%Y-%m-%dT%H:%M')
-    
-    assignment = Assignment(
-        title=title,
-        description=description,
-        class_id=class_id,
-        due_date=due_date,
-        max_score=int(max_score)
-    )
-    
-    db.session.add(assignment)
-    db.session.commit()
-    
-    # Öğrencilere bildirim gönder
-    notify_students_new_assignment(assignment, cls)
-    
-    flash(f'Ödev "{title}" başarıyla oluşturuldu!', 'success')
-    return redirect(url_for('admin_class_detail', class_id=class_id))
+    try:
+        if current_user.role != 'admin':
+            flash('Bu işlem için yetkiniz yok!', 'danger')
+            return redirect(url_for('dashboard'))
+        
+        cls = Class.query.get_or_404(class_id)
+        
+        # Sadece kendi oluşturduğu sınıfa ödev verebilir
+        if cls.created_by != current_user.id:
+            flash('Bu sınıfa ödev verme yetkiniz yok!', 'danger')
+            return redirect(url_for('admin_classes'))
+        
+        title = request.form.get('title')
+        description = request.form.get('description')
+        due_date_str = request.form.get('due_date')
+        max_score = request.form.get('max_score', 100)
+        
+        if not due_date_str:
+            flash('Teslim tarihi gereklidir!', 'danger')
+            return redirect(url_for('admin_class_detail', class_id=class_id))
+        
+        try:
+            due_date = datetime.strptime(due_date_str, '%Y-%m-%dT%H:%M')
+        except ValueError:
+            flash('Geçersiz tarih formatı!', 'danger')
+            return redirect(url_for('admin_class_detail', class_id=class_id))
+        
+        assignment = Assignment(
+            title=title,
+            description=description,
+            class_id=class_id,
+            due_date=due_date,
+            max_score=int(max_score)
+        )
+        
+        db.session.add(assignment)
+        db.session.commit()
+        
+        # Öğrencilere bildirim gönder (hata olsa bile devam et)
+        notify_students_new_assignment(assignment, cls)
+        
+        flash(f'Ödev "{title}" başarıyla oluşturuldu!', 'success')
+        return redirect(url_for('admin_class_detail', class_id=class_id))
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Ödev oluşturma hatası: {e}")
+        import traceback
+        traceback.print_exc()
+        flash('Ödev oluşturulurken bir hata oluştu! Lütfen tekrar deneyin.', 'danger')
+        return redirect(url_for('admin_class_detail', class_id=class_id))
 
 @app.route('/admin/assignments/<int:assignment_id>/submissions')
 @login_required
@@ -944,53 +970,74 @@ def bulk_create_announcement():
 @login_required
 def bulk_create_assignment():
     """Toplu ödev ver"""
-    if current_user.role != 'admin':
-        flash('Bu işlem için yetkiniz yok!', 'danger')
-        return redirect(url_for('dashboard'))
-    
-    class_ids_str = request.form.get('class_ids', '')
-    if not class_ids_str:
-        flash('Lütfen en az bir sınıf seçin!', 'danger')
-        return redirect(url_for('admin_classes'))
-    
-    class_ids = [int(id.strip()) for id in class_ids_str.split(',') if id.strip()]
-    
-    # Sadece kendi sınıflarını kontrol et
-    classes = Class.query.filter(
-        Class.id.in_(class_ids),
-        Class.created_by == current_user.id
-    ).all()
-    
-    if not classes:
-        flash('Geçerli sınıf bulunamadı!', 'danger')
-        return redirect(url_for('admin_classes'))
-    
-    title = request.form.get('title')
-    description = request.form.get('description')
-    due_date_str = request.form.get('due_date')
-    max_score = request.form.get('max_score', 100)
-    
-    due_date = datetime.strptime(due_date_str, '%Y-%m-%dT%H:%M')
-    
-    success_count = 0
-    for cls in classes:
-        assignment = Assignment(
-            title=title,
-            description=description,
-            class_id=cls.id,
-            due_date=due_date,
-            max_score=int(max_score)
-        )
+    try:
+        if current_user.role != 'admin':
+            flash('Bu işlem için yetkiniz yok!', 'danger')
+            return redirect(url_for('dashboard'))
         
-        db.session.add(assignment)
-        db.session.commit()
+        class_ids_str = request.form.get('class_ids', '')
+        if not class_ids_str:
+            flash('Lütfen en az bir sınıf seçin!', 'danger')
+            return redirect(url_for('admin_classes'))
         
-        # Öğrencilere bildirim gönder
-        notify_students_new_assignment(assignment, cls)
-        success_count += 1
-    
-    flash(f'Ödev "{title}" {success_count} sınıfa başarıyla verildi!', 'success')
-    return redirect(url_for('admin_classes'))
+        class_ids = [int(id.strip()) for id in class_ids_str.split(',') if id.strip()]
+        
+        # Sadece kendi sınıflarını kontrol et
+        classes = Class.query.filter(
+            Class.id.in_(class_ids),
+            Class.created_by == current_user.id
+        ).all()
+        
+        if not classes:
+            flash('Geçerli sınıf bulunamadı!', 'danger')
+            return redirect(url_for('admin_classes'))
+        
+        title = request.form.get('title')
+        description = request.form.get('description')
+        due_date_str = request.form.get('due_date')
+        max_score = request.form.get('max_score', 100)
+        
+        if not due_date_str:
+            flash('Teslim tarihi gereklidir!', 'danger')
+            return redirect(url_for('admin_classes'))
+        
+        try:
+            due_date = datetime.strptime(due_date_str, '%Y-%m-%dT%H:%M')
+        except ValueError:
+            flash('Geçersiz tarih formatı!', 'danger')
+            return redirect(url_for('admin_classes'))
+        
+        success_count = 0
+        for cls in classes:
+            try:
+                assignment = Assignment(
+                    title=title,
+                    description=description,
+                    class_id=cls.id,
+                    due_date=due_date,
+                    max_score=int(max_score)
+                )
+                
+                db.session.add(assignment)
+                db.session.commit()
+                
+                # Öğrencilere bildirim gönder (hata olsa bile devam et)
+                notify_students_new_assignment(assignment, cls)
+                success_count += 1
+            except Exception as e:
+                db.session.rollback()
+                print(f"⚠️ Sınıf {cls.id} ödev oluşturma hatası: {e}")
+                # Bir sınıfta hata olsa bile diğerlerine devam et
+        
+        flash(f'Ödev "{title}" {success_count} sınıfa başarıyla verildi!', 'success')
+        return redirect(url_for('admin_classes'))
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Toplu ödev oluşturma hatası: {e}")
+        import traceback
+        traceback.print_exc()
+        flash('Ödev oluşturulurken bir hata oluştu! Lütfen tekrar deneyin.', 'danger')
+        return redirect(url_for('admin_classes'))
 
 @app.route('/admin/announcements/<int:announcement_id>/delete', methods=['POST'])
 @login_required
