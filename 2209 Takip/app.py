@@ -112,14 +112,19 @@ def notify_student_graded(submission, assignment, class_obj):
 
 def notify_teacher_new_submission(teacher_id, student, assignment, class_obj):
     """Öğrenci ödev teslim ettiğinde öğretmene bildir"""
-    create_notification(
-        user_id=teacher_id,
-        title='Yeni Ödev Teslimi',
-        message=f'{student.full_name}, {assignment.title} ödevini teslim etti',
-        notif_type='submission',
-        icon='bi-upload',
-        link=url_for('admin_assignment_submissions', assignment_id=assignment.id)
-    )
+    try:
+        create_notification(
+            user_id=teacher_id,
+            title='Yeni Ödev Teslimi',
+            message=f'{student.full_name}, {assignment.title} ödevini teslim etti',
+            notif_type='submission',
+            icon='bi-upload',
+            link=url_for('admin_assignment_submissions', assignment_id=assignment.id),
+            send_email=False  # Email göndermeyi devre dışı bırak (timeout olmasın)
+        )
+    except Exception as e:
+        # Bildirim hatası kritik değil, sadece logla
+        print(f"⚠️ Bildirim gönderme hatası: {e}")
 
 def notify_students_new_announcement(announcement, class_obj):
     """Yeni bilgilendirme eklendiğinde öğrencilere bildir"""
@@ -806,30 +811,34 @@ def student_class_assignments(class_id):
 @app.route('/student/assignments/<int:assignment_id>/submit', methods=['POST'])
 @login_required
 def submit_assignment(assignment_id):
-    if current_user.role != 'student':
-        flash('Bu işlem için yetkiniz yok!', 'danger')
-        return redirect(url_for('dashboard'))
-    
-    assignment = Assignment.query.get_or_404(assignment_id)
-    
-    # Öğrenci bu sınıfa kayıtlı mı?
-    if assignment.class_ref not in current_user.enrolled_classes:
-        flash('Bu sınıfa kayıtlı değilsiniz!', 'danger')
-        return redirect(url_for('student_classes'))
-    
-    # Dosya yüklendi mi?
-    if 'file' not in request.files:
-        flash('Dosya seçilmedi!', 'danger')
-        return redirect(url_for('student_class_assignments', class_id=assignment.class_id))
-    
-    file = request.files['file']
-    student_comment = request.form.get('student_comment', '').strip()
-    
-    if file.filename == '':
-        flash('Dosya seçilmedi!', 'danger')
-        return redirect(url_for('student_class_assignments', class_id=assignment.class_id))
-    
-    if file and allowed_file(file.filename):
+    try:
+        if current_user.role != 'student':
+            flash('Bu işlem için yetkiniz yok!', 'danger')
+            return redirect(url_for('dashboard'))
+        
+        assignment = Assignment.query.get_or_404(assignment_id)
+        
+        # Öğrenci bu sınıfa kayıtlı mı?
+        if assignment.class_ref not in current_user.enrolled_classes:
+            flash('Bu sınıfa kayıtlı değilsiniz!', 'danger')
+            return redirect(url_for('student_classes'))
+        
+        # Dosya yüklendi mi?
+        if 'file' not in request.files:
+            flash('Dosya seçilmedi!', 'danger')
+            return redirect(url_for('student_class_assignments', class_id=assignment.class_id))
+        
+        file = request.files['file']
+        student_comment = request.form.get('student_comment', '').strip()
+        
+        if file.filename == '':
+            flash('Dosya seçilmedi!', 'danger')
+            return redirect(url_for('student_class_assignments', class_id=assignment.class_id))
+        
+        if not allowed_file(file.filename):
+            flash('Sadece PDF ve DOCX dosyaları yüklenebilir!', 'danger')
+            return redirect(url_for('student_class_assignments', class_id=assignment.class_id))
+        
         filename = secure_filename(file.filename)
         
         # Benzersiz dosya adı oluştur
@@ -837,6 +846,11 @@ def submit_assignment(assignment_id):
         unique_filename = f"{current_user.id}_{assignment_id}_{timestamp}_{filename}"
         
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+        
+        # Dosya yükleme dizininin var olduğundan emin ol
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        
+        # Dosyayı kaydet
         file.save(file_path)
         
         # Daha önce teslim var mı? Varsa güncelle
@@ -848,10 +862,10 @@ def submit_assignment(assignment_id):
         if existing_submission:
             # Eski dosyayı sil
             try:
-                if os.path.exists(existing_submission.file_path):
+                if existing_submission.file_path and os.path.exists(existing_submission.file_path):
                     os.remove(existing_submission.file_path)
-            except:
-                pass
+            except Exception as e:
+                print(f"⚠️ Eski dosya silme hatası: {e}")
             
             existing_submission.file_name = filename
             existing_submission.file_path = file_path
@@ -870,12 +884,24 @@ def submit_assignment(assignment_id):
             db.session.add(submission)
             flash('Ödeviniz başarıyla teslim edildi!', 'success')
             
-            # Öğretmene bildirim gönder
+            # Öğretmene bildirim gönder (hata olsa bile devam et)
             notify_teacher_new_submission(assignment.class_ref.created_by, current_user, assignment, assignment.class_ref)
         
         db.session.commit()
-    else:
-        flash('Sadece PDF ve DOCX dosyaları yüklenebilir!', 'danger')
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Ödev teslim hatası: {e}")
+        import traceback
+        traceback.print_exc()
+        flash('Ödev teslim edilirken bir hata oluştu! Lütfen tekrar deneyin.', 'danger')
+        # Dosya yüklenmişse sil
+        try:
+            if 'file_path' in locals() and os.path.exists(file_path):
+                os.remove(file_path)
+        except:
+            pass
+        return redirect(url_for('student_class_assignments', class_id=assignment.class_id))
     
     return redirect(url_for('student_class_assignments', class_id=assignment.class_id))
 
