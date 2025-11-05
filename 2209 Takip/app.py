@@ -5,8 +5,7 @@ from werkzeug.utils import secure_filename
 from config import Config
 from models import db, User, Class, Assignment, Submission, Announcement, AnnouncementRead, Notification, ProgramAnnouncement
 import os
-import secrets
-from datetime import datetime, timedelta
+from datetime import datetime
 # TÜBİTAK scraper özelliği kaldırıldı
 
 app = Flask(__name__)
