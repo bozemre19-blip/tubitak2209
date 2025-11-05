@@ -459,7 +459,7 @@ def dashboard():
         return render_template('student/dashboard.html',
                              my_classes=my_classes,
                              upcoming_assignments=upcoming_assignments[:5],
-                             recent_announcements=recent_announcements[:5],
+                             recent_announcements=recent_announcements,  # Tüm bilgilendirmeleri göster
                              program_announcements=program_announcements)
 
 # ============ Admin: Sınıf Yönetimi ============
