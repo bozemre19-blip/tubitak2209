@@ -11,6 +11,52 @@
     </div>
 </div>
 
+<!-- TÜBİTAK 2209-A Program Duyuruları -->
+{% if program_announcements %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">
+                    <i class="bi bi-bullhorn-fill"></i> TÜBİTAK 2209-A Program Duyuruları
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for announcement in program_announcements %}
+                <div class="alert {% if announcement.is_important %}alert-danger{% else %}alert-warning{% endif %} mb-3" role="alert">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <h6 class="alert-heading">
+                                {% if announcement.is_important %}
+                                <span class="badge bg-danger me-2">ÖNEMLİ</span>
+                                {% endif %}
+                                <i class="bi bi-bullhorn-fill"></i> {{ announcement.title }}
+                            </h6>
+                            <p class="mb-2">{{ announcement.content }}</p>
+                            <div class="d-flex gap-2 flex-wrap">
+                                {% if announcement.external_link %}
+                                <a href="{{ announcement.external_link }}" target="_blank" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-box-arrow-up-right"></i> Detaylı Bilgi (TÜBİTAK Sitesi)
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                    <small class="text-muted">
+                        <i class="bi bi-calendar"></i> {{ announcement.created_at|datetime }}
+                        {% if announcement.updated_at != announcement.created_at %}
+                        - <i class="bi bi-arrow-repeat"></i> Güncellendi: {{ announcement.updated_at|datetime }}
+                        {% endif %}
+                    </small>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Bilgilendirmeler -->
 {% if recent_announcements %}
 <div class="row mb-4">

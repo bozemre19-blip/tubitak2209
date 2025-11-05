@@ -62,6 +62,56 @@
     </div>
 </div>
 
+<!-- TÜBİTAK 2209-A Program Duyuruları -->
+{% if program_announcements %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-bullhorn-fill"></i> TÜBİTAK 2209-A Program Duyuruları
+                </h5>
+                <a href="{{ url_for('admin_program_announcements') }}" class="btn btn-sm btn-dark">
+                    <i class="bi bi-gear"></i> Yönet
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    {% for announcement in program_announcements %}
+                    <div class="list-group-item {% if announcement.is_important %}border-danger border-start border-4{% endif %}">
+                        <div class="d-flex w-100 justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-2">
+                                    {% if announcement.is_important %}
+                                    <span class="badge bg-danger">ÖNEMLİ</span>
+                                    {% endif %}
+                                    <i class="bi bi-bullhorn-fill text-warning"></i> {{ announcement.title }}
+                                </h6>
+                                <p class="mb-2">{{ announcement.content[:150] }}{% if announcement.content|length > 150 %}...{% endif %}</p>
+                                <div class="d-flex gap-3 align-items-center flex-wrap">
+                                    {% if announcement.external_link %}
+                                    <a href="{{ announcement.external_link }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-box-arrow-up-right"></i> Detaylı Bilgi (TÜBİTAK)
+                                    </a>
+                                    {% endif %}
+                                    <small class="text-muted">
+                                        <i class="bi bi-calendar"></i> {{ announcement.created_at|datetime }}
+                                    </small>
+                                    {% if not announcement.is_active %}
+                                    <span class="badge bg-secondary">Pasif</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Son Yayınlanan Bilgilendirmeler -->
 {% if recent_announcements %}
 <div class="row mb-4">
@@ -205,7 +255,7 @@
 
 <!-- Hızlı Erişim -->
 <div class="row mt-4">
-    <div class="col-md-4 mb-3">
+    <div class="col-md-3 mb-3">
         <div class="card">
             <div class="card-body text-center">
                 <i class="bi bi-plus-circle text-primary" style="font-size: 3rem;"></i>
@@ -218,7 +268,7 @@
         </div>
     </div>
     
-    <div class="col-md-4 mb-3">
+    <div class="col-md-3 mb-3">
         <div class="card">
             <div class="card-body text-center">
                 <i class="bi bi-megaphone-fill text-success" style="font-size: 3rem;"></i>
@@ -231,7 +281,7 @@
         </div>
     </div>
     
-    <div class="col-md-4 mb-3">
+    <div class="col-md-3 mb-3">
         <div class="card">
             <div class="card-body text-center">
                 <i class="bi bi-file-earmark-plus text-info" style="font-size: 3rem;"></i>
@@ -239,6 +289,19 @@
                 <p class="text-muted">Sınıflarınıza ödev atayın</p>
                 <a href="{{ url_for('admin_classes') }}" class="btn btn-info">
                     <i class="bi bi-arrow-right"></i> Ödev Ver
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-bullhorn-fill text-warning" style="font-size: 3rem;"></i>
+                <h5 class="mt-3">Program Duyuruları</h5>
+                <p class="text-muted">TÜBİTAK 2209-A duyurularını yönetin</p>
+                <a href="{{ url_for('admin_program_announcements') }}" class="btn btn-warning">
+                    <i class="bi bi-arrow-right"></i> Duyuruları Yönet
                 </a>
             </div>
         </div>

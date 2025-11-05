@@ -3,7 +3,7 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from flask_mail import Mail, Message
 from werkzeug.utils import secure_filename
 from config import Config
-from models import db, User, Class, Assignment, Submission, Announcement, AnnouncementRead, Notification
+from models import db, User, Class, Assignment, Submission, Announcement, AnnouncementRead, Notification, ProgramAnnouncement
 import os
 from datetime import datetime
 
@@ -388,13 +388,19 @@ def dashboard():
         recent_announcements.sort(key=lambda x: x['announcement'].created_at, reverse=True)
         recent_announcements = recent_announcements[:5]
         
+        # TÜBİTAK 2209-A Program Duyuruları (aktif olanlar)
+        program_announcements = ProgramAnnouncement.query.filter_by(
+            is_active=True
+        ).order_by(ProgramAnnouncement.is_important.desc(), ProgramAnnouncement.created_at.desc()).limit(5).all()
+        
         return render_template('admin/dashboard.html',
                              total_students=total_students,
                              total_classes=total_classes,
                              total_assignments=total_assignments,
                              total_submissions=total_submissions,
                              recent_submissions=recent_submissions,
-                             recent_announcements=recent_announcements)
+                             recent_announcements=recent_announcements,
+                             program_announcements=program_announcements)
     else:
         # Öğrenci için sınıflar ve ödevler
         my_classes = current_user.enrolled_classes
@@ -430,10 +436,16 @@ def dashboard():
         # Tarihe göre sırala (en yeni üstte)
         recent_announcements.sort(key=lambda x: x['announcement'].created_at, reverse=True)
         
+        # TÜBİTAK 2209-A Program Duyuruları (aktif olanlar)
+        program_announcements = ProgramAnnouncement.query.filter_by(
+            is_active=True
+        ).order_by(ProgramAnnouncement.is_important.desc(), ProgramAnnouncement.created_at.desc()).limit(5).all()
+        
         return render_template('student/dashboard.html',
                              my_classes=my_classes,
                              upcoming_assignments=upcoming_assignments[:5],
-                             recent_announcements=recent_announcements[:5])
+                             recent_announcements=recent_announcements[:5],
+                             program_announcements=program_announcements)
 
 # ============ Admin: Sınıf Yönetimi ============
 
@@ -977,6 +989,92 @@ def delete_announcement(announcement_id):
     
     flash('Bilgilendirme silindi.', 'success')
     return redirect(url_for('admin_class_detail', class_id=class_id))
+
+# ============ TÜBİTAK 2209-A Program Duyuruları ============
+
+@app.route('/admin/program-announcements')
+@login_required
+def admin_program_announcements():
+    """Program duyurularını listele (admin)"""
+    if current_user.role != 'admin':
+        flash('Bu sayfaya erişim yetkiniz yok!', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    announcements = ProgramAnnouncement.query.order_by(
+        ProgramAnnouncement.is_important.desc(),
+        ProgramAnnouncement.created_at.desc()
+    ).all()
+    
+    return render_template('admin/program_announcements.html', announcements=announcements)
+
+@app.route('/admin/program-announcements/create', methods=['POST'])
+@login_required
+def create_program_announcement():
+    """Program duyurusu oluştur"""
+    if current_user.role != 'admin':
+        flash('Bu işlem için yetkiniz yok!', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    title = request.form.get('title')
+    content = request.form.get('content')
+    external_link = request.form.get('external_link', '').strip()
+    is_important = request.form.get('is_important') == 'on'
+    is_active = request.form.get('is_active', 'on') == 'on'
+    
+    announcement = ProgramAnnouncement(
+        title=title,
+        content=content,
+        external_link=external_link if external_link else None,
+        is_important=is_important,
+        is_active=is_active,
+        created_by=current_user.id
+    )
+    
+    db.session.add(announcement)
+    db.session.commit()
+    
+    flash(f'Program duyurusu "{title}" başarıyla oluşturuldu!', 'success')
+    return redirect(url_for('admin_program_announcements'))
+
+@app.route('/admin/program-announcements/<int:announcement_id>/update', methods=['POST'])
+@login_required
+def update_program_announcement(announcement_id):
+    """Program duyurusu güncelle"""
+    if current_user.role != 'admin':
+        flash('Bu işlem için yetkiniz yok!', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    announcement = ProgramAnnouncement.query.get_or_404(announcement_id)
+    
+    announcement.title = request.form.get('title')
+    announcement.content = request.form.get('content')
+    external_link = request.form.get('external_link', '').strip()
+    announcement.external_link = external_link if external_link else None
+    announcement.is_important = request.form.get('is_important') == 'on'
+    announcement.is_active = request.form.get('is_active', 'on') == 'on'
+    announcement.updated_at = datetime.utcnow()
+    
+    db.session.commit()
+    
+    flash(f'Program duyurusu "{announcement.title}" güncellendi!', 'success')
+    return redirect(url_for('admin_program_announcements'))
+
+@app.route('/admin/program-announcements/<int:announcement_id>/delete', methods=['POST'])
+@login_required
+def delete_program_announcement(announcement_id):
+    """Program duyurusu sil"""
+    if current_user.role != 'admin':
+        flash('Bu işlem için yetkiniz yok!', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    announcement = ProgramAnnouncement.query.get_or_404(announcement_id)
+    title = announcement.title
+    
+    db.session.delete(announcement)
+    db.session.commit()
+    
+    flash(f'Program duyurusu "{title}" silindi!', 'success')
+    return redirect(url_for('admin_program_announcements'))
 
 @app.route('/announcement/<int:announcement_id>/mark-read', methods=['POST'])
 @login_required

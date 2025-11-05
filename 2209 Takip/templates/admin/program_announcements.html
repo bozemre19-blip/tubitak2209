@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+
+{% block title %}TÜBİTAK 2209-A Program Duyuruları - Öğrenci Takip Sistemi{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 d-flex justify-content-between align-items-center mb-4">
+        <h1>
+            <i class="bi bi-bullhorn-fill"></i> TÜBİTAK 2209-A Program Duyuruları
+        </h1>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createAnnouncementModal">
+            <i class="bi bi-plus-circle"></i> Yeni Duyuru Ekle
+        </button>
+    </div>
+</div>
+
+<!-- Duyurular Listesi -->
+<div class="row">
+    <div class="col-12">
+        {% if announcements %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Başlık</th>
+                        <th>İçerik</th>
+                        <th>Link</th>
+                        <th>Durum</th>
+                        <th>Tarih</th>
+                        <th>İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for announcement in announcements %}
+                    <tr class="{% if not announcement.is_active %}table-secondary{% elif announcement.is_important %}table-warning{% endif %}">
+                        <td>
+                            {% if announcement.is_important %}
+                            <span class="badge bg-danger me-2">ÖNEMLİ</span>
+                            {% endif %}
+                            <strong>{{ announcement.title }}</strong>
+                        </td>
+                        <td>
+                            <small>{{ announcement.content[:80] }}{% if announcement.content|length > 80 %}...{% endif %}</small>
+                        </td>
+                        <td>
+                            {% if announcement.external_link %}
+                            <a href="{{ announcement.external_link }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-box-arrow-up-right"></i> Link
+                            </a>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if announcement.is_active %}
+                            <span class="badge bg-success">Aktif</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Pasif</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small>
+                                <i class="bi bi-calendar"></i> {{ announcement.created_at|datetime }}
+                                {% if announcement.updated_at != announcement.created_at %}
+                                <br><i class="bi bi-arrow-repeat"></i> {{ announcement.updated_at|datetime }}
+                                {% endif %}
+                            </small>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-info edit-btn" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#editAnnouncementModal{{ announcement.id }}"
+                                    data-announcement-id="{{ announcement.id }}"
+                                    data-title="{{ announcement.title|e }}"
+                                    data-content="{{ announcement.content|e }}"
+                                    data-link="{{ announcement.external_link|e if announcement.external_link else '' }}"
+                                    data-important="{{ announcement.is_important|lower }}"
+                                    data-active="{{ announcement.is_active|lower }}">
+                                <i class="bi bi-pencil"></i> Düzenle
+                            </button>
+                            <form method="POST" 
+                                  action="{{ url_for('delete_program_announcement', announcement_id=announcement.id) }}" 
+                                  class="d-inline"
+                                  onsubmit="return confirm('Bu duyuruyu silmek istediğinizden emin misiniz?');">
+                                <button type="submit" class="btn btn-sm btn-danger">
+                                    <i class="bi bi-trash"></i> Sil
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    
+                    <!-- Düzenleme Modal (her duyuru için) -->
+                    <div class="modal fade" id="editAnnouncementModal{{ announcement.id }}" tabindex="-1">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">
+                                        <i class="bi bi-pencil"></i> Duyuruyu Düzenle
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <form method="POST" action="{{ url_for('update_program_announcement', announcement_id=announcement.id) }}">
+                                    <div class="modal-body">
+                                        <div class="mb-3">
+                                            <label for="edit_title_{{ announcement.id }}" class="form-label">Başlık</label>
+                                            <input type="text" class="form-control" id="edit_title_{{ announcement.id }}" 
+                                                   name="title" required>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="edit_content_{{ announcement.id }}" class="form-label">İçerik</label>
+                                            <textarea class="form-control" id="edit_content_{{ announcement.id }}" 
+                                                      name="content" rows="5" required></textarea>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="edit_link_{{ announcement.id }}" class="form-label">TÜBİTAK Sitesi Linki (İsteğe bağlı)</label>
+                                            <input type="url" class="form-control" id="edit_link_{{ announcement.id }}" 
+                                                   name="external_link" 
+                                                   placeholder="https://tubitak.gov.tr/...">
+                                            <small class="form-text text-muted">
+                                                TÜBİTAK 2209-A program sayfası linkini buraya ekleyin
+                                            </small>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" 
+                                                       id="edit_important_{{ announcement.id }}" 
+                                                       name="is_important">
+                                                <label class="form-check-label" for="edit_important_{{ announcement.id }}">
+                                                    <i class="bi bi-exclamation-triangle-fill text-danger"></i> Önemli olarak işaretle
+                                                </label>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" 
+                                                       id="edit_active_{{ announcement.id }}" 
+                                                       name="is_active" checked>
+                                                <label class="form-check-label" for="edit_active_{{ announcement.id }}">
+                                                    Aktif (Dashboard'da görünsün)
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="bi bi-check-circle"></i> Güncelle
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-bullhorn"></i>
+            <h5>Henüz duyuru eklenmemiş</h5>
+            <p>Yukarıdaki "Yeni Duyuru Ekle" butonunu kullanarak ilk duyurunuzu oluşturun.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Yeni Duyuru Modal -->
+<div class="modal fade" id="createAnnouncementModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-plus-circle"></i> Yeni Program Duyurusu Ekle
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('create_program_announcement') }}">
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> Bu duyuru tüm öğrencilerin dashboard'ında görünecektir.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Başlık</label>
+                        <input type="text" class="form-control" id="title" name="title" 
+                               placeholder="Örn: 2025 Yılı Çağrı Duyurusu" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="content" class="form-label">İçerik</label>
+                        <textarea class="form-control" id="content" name="content" rows="6" 
+                                  placeholder="Duyuru içeriğini buraya yazın..." required></textarea>
+                        <small class="form-text text-muted">
+                            Örnek: "2209-A programı 2025 yılı çağrısı başvuruya açılmıştır. Başvurular 12 Kasım 2025 saat 17:30'a kadar TÜBİTAK Yönetim Bilgi Sistemi üzerinden yapılabilir."
+                        </small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="external_link" class="form-label">TÜBİTAK Sitesi Linki (İsteğe bağlı)</label>
+                        <input type="url" class="form-control" id="external_link" name="external_link" 
+                               placeholder="https://tubitak.gov.tr/tr/burslar/lisans-onlisans/destek-programlari/2209-universite-ogrencileri-arastirma-projeleri-destekleme-programi">
+                        <small class="form-text text-muted">
+                            TÜBİTAK 2209-A program sayfasının linkini buraya ekleyin. Öğrenciler "Detaylı Bilgi" butonuna tıklayarak bu sayfaya gidebilir.
+                        </small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="is_important" name="is_important">
+                            <label class="form-check-label" for="is_important">
+                                <i class="bi bi-exclamation-triangle-fill text-danger"></i> Önemli olarak işaretle
+                            </label>
+                        </div>
+                        <small class="form-text text-muted">
+                            Önemli duyurular kırmızı renkte vurgulanır ve en üstte görünür.
+                        </small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>
+                            <label class="form-check-label" for="is_active">
+                                Aktif (Dashboard'da görünsün)
+                            </label>
+                        </div>
+                        <small class="form-text text-muted">
+                            Pasif duyurular dashboard'da görünmez ama silinmez.
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> Oluştur
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.announcementId;
+            document.getElementById('edit_title_' + id).value = this.dataset.title || '';
+            document.getElementById('edit_content_' + id).value = this.dataset.content || '';
+            document.getElementById('edit_link_' + id).value = this.dataset.link || '';
+            document.getElementById('edit_important_' + id).checked = this.dataset.important === 'true';
+            document.getElementById('edit_active_' + id).checked = this.dataset.active === 'true';
+        });
+    });
+});
+</script>
+{% endblock %}
+

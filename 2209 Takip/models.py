@@ -128,3 +128,21 @@ class Notification(db.Model):
     def __repr__(self):
         return f'<Notification {self.id} - {self.title}>'
 
+class ProgramAnnouncement(db.Model):
+    """TÜBİTAK 2209-A Programı ile ilgili genel duyurular"""
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    external_link = db.Column(db.String(500))  # TÜBİTAK sitesine link
+    is_important = db.Column(db.Boolean, default=False)
+    is_active = db.Column(db.Boolean, default=True)  # Aktif/pasif
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # İlişkiler
+    creator = db.relationship('User', foreign_keys=[created_by])
+    
+    def __repr__(self):
+        return f'<ProgramAnnouncement {self.id} - {self.title}>'
+
