@@ -6,10 +6,25 @@
 <div class="row">
     <div class="col-12 d-flex justify-content-between align-items-center mb-4">
         <h1><i class="bi bi-book"></i> Sınıf Yönetimi</h1>
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createClassModal">
-            <i class="bi bi-plus-circle"></i> Yeni Sınıf Oluştur
-        </button>
+        <div>
+            <button class="btn btn-success me-2" id="bulkAnnouncementBtn" style="display:none;" 
+                    data-bs-toggle="modal" data-bs-target="#bulkAnnouncementModal">
+                <i class="bi bi-megaphone"></i> Toplu Bilgilendirme
+            </button>
+            <button class="btn btn-info me-2" id="bulkAssignmentBtn" style="display:none;" 
+                    data-bs-toggle="modal" data-bs-target="#bulkAssignmentModal">
+                <i class="bi bi-file-earmark-text"></i> Toplu Ödev Ver
+            </button>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createClassModal">
+                <i class="bi bi-plus-circle"></i> Yeni Sınıf Oluştur
+            </button>
+        </div>
     </div>
+</div>
+
+<!-- Toplu İşlem Uyarısı -->
+<div class="alert alert-info mb-3" id="bulkSelectionAlert" style="display:none;">
+    <i class="bi bi-info-circle"></i> <span id="selectedCount">0</span> sınıf seçildi. Toplu işlem yapabilirsiniz.
 </div>
 
 <!-- Sınıflar -->
@@ -19,6 +34,14 @@
         <div class="col-md-6 col-lg-4 mb-4">
             <div class="card class-card h-100 {% if not class.is_active %}class-card-inactive{% endif %}">
                 <div class="card-body">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input bulk-class-checkbox" type="checkbox" 
+                               value="{{ class.id }}" id="class_{{ class.id }}" 
+                               onchange="updateBulkButtons()">
+                        <label class="form-check-label" for="class_{{ class.id }}">
+                            <strong>Seç</strong>
+                        </label>
+                    </div>
                     <h5 class="card-title">
                         <i class="bi bi-book-fill text-primary"></i> {{ class.name }}
                     </h5>
@@ -103,5 +126,150 @@
         </div>
     </div>
 </div>
+
+<!-- Toplu Bilgilendirme Modal -->
+<div class="modal fade" id="bulkAnnouncementModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-megaphone"></i> Toplu Bilgilendirme Gönder
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('bulk_create_announcement') }}" id="bulkAnnouncementForm">
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> Seçili sınıfların tüm öğrencilerine bilgilendirme gönderilecek.
+                    </div>
+                    <input type="hidden" name="class_ids" id="bulkAnnouncementClassIds">
+                    
+                    <div class="mb-3">
+                        <label for="bulk_announcement_title" class="form-label">Başlık</label>
+                        <input type="text" class="form-control" id="bulk_announcement_title" 
+                               name="title" placeholder="Bilgilendirme başlığı" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="bulk_announcement_content" class="form-label">İçerik</label>
+                        <textarea class="form-control" id="bulk_announcement_content" 
+                                  name="content" rows="5" placeholder="Bilgilendirme içeriği..." required></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="bulk_announcement_important" 
+                                   name="is_important">
+                            <label class="form-check-label" for="bulk_announcement_important">
+                                <i class="bi bi-exclamation-triangle-fill text-warning"></i> Önemli olarak işaretle
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="bulk_announcement_file" class="form-label">Dosya Ekle (İsteğe bağlı)</label>
+                        <input type="file" class="form-control" id="bulk_announcement_file" 
+                               name="file" accept=".pdf,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.txt,.jpg,.jpeg,.png,.gif">
+                        <small class="form-text text-muted">
+                            PDF, DOCX, XLSX, PPTX, resim dosyaları
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-send"></i> Tüm Sınıflara Gönder
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Toplu Ödev Modal -->
+<div class="modal fade" id="bulkAssignmentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-file-earmark-text"></i> Toplu Ödev Ver
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('bulk_create_assignment') }}" id="bulkAssignmentForm">
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> Seçili sınıfların tüm öğrencilerine ödev verilecek.
+                    </div>
+                    <input type="hidden" name="class_ids" id="bulkAssignmentClassIds">
+                    
+                    <div class="mb-3">
+                        <label for="bulk_assignment_title" class="form-label">Ödev Başlığı</label>
+                        <input type="text" class="form-control" id="bulk_assignment_title" 
+                               name="title" placeholder="Ödev başlığı" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="bulk_assignment_description" class="form-label">Açıklama</label>
+                        <textarea class="form-control" id="bulk_assignment_description" 
+                                  name="description" rows="5" placeholder="Ödev açıklaması..." required></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="bulk_assignment_due_date" class="form-label">Teslim Tarihi</label>
+                            <input type="datetime-local" class="form-control" id="bulk_assignment_due_date" 
+                                   name="due_date" required>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="bulk_assignment_max_score" class="form-label">Maksimum Puan</label>
+                            <input type="number" class="form-control" id="bulk_assignment_max_score" 
+                                   name="max_score" value="100" min="1" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-info">
+                        <i class="bi bi-check-circle"></i> Tüm Sınıflara Ver
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateBulkButtons() {
+    const checkboxes = document.querySelectorAll('.bulk-class-checkbox:checked');
+    const count = checkboxes.length;
+    const selectedIds = Array.from(checkboxes).map(cb => cb.value);
+    
+    if (count > 0) {
+        document.getElementById('bulkAnnouncementBtn').style.display = 'inline-block';
+        document.getElementById('bulkAssignmentBtn').style.display = 'inline-block';
+        document.getElementById('bulkSelectionAlert').style.display = 'block';
+        document.getElementById('selectedCount').textContent = count;
+        
+        // Form'lara seçili ID'leri ekle
+        document.getElementById('bulkAnnouncementClassIds').value = selectedIds.join(',');
+        document.getElementById('bulkAssignmentClassIds').value = selectedIds.join(',');
+    } else {
+        document.getElementById('bulkAnnouncementBtn').style.display = 'none';
+        document.getElementById('bulkAssignmentBtn').style.display = 'none';
+        document.getElementById('bulkSelectionAlert').style.display = 'none';
+    }
+}
+
+// Modal açıldığında form'u temizle
+document.getElementById('bulkAnnouncementModal').addEventListener('hidden.bs.modal', function () {
+    document.getElementById('bulkAnnouncementForm').reset();
+});
+
+document.getElementById('bulkAssignmentModal').addEventListener('hidden.bs.modal', function () {
+    document.getElementById('bulkAssignmentForm').reset();
+});
+</script>
 {% endblock %}
 

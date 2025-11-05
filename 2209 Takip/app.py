@@ -829,6 +829,126 @@ def create_announcement(class_id):
     flash(f'Bilgilendirme "{title}" başarıyla yayınlandı!', 'success')
     return redirect(url_for('admin_class_detail', class_id=class_id))
 
+@app.route('/admin/announcements/bulk-create', methods=['POST'])
+@login_required
+def bulk_create_announcement():
+    """Toplu bilgilendirme gönder"""
+    if current_user.role != 'admin':
+        flash('Bu işlem için yetkiniz yok!', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    class_ids_str = request.form.get('class_ids', '')
+    if not class_ids_str:
+        flash('Lütfen en az bir sınıf seçin!', 'danger')
+        return redirect(url_for('admin_classes'))
+    
+    class_ids = [int(id.strip()) for id in class_ids_str.split(',') if id.strip()]
+    
+    # Sadece kendi sınıflarını kontrol et
+    classes = Class.query.filter(
+        Class.id.in_(class_ids),
+        Class.created_by == current_user.id
+    ).all()
+    
+    if not classes:
+        flash('Geçerli sınıf bulunamadı!', 'danger')
+        return redirect(url_for('admin_classes'))
+    
+    title = request.form.get('title')
+    content = request.form.get('content')
+    is_important = request.form.get('is_important') == 'on'
+    
+    # Dosya yüklendiyse (her sınıf için aynı dosya kopyalanacak)
+    file = None
+    file_path = None
+    filename = None
+    if 'file' in request.files:
+        file = request.files['file']
+        if file and file.filename != '' and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+    
+    success_count = 0
+    for cls in classes:
+        announcement = Announcement(
+            title=title,
+            content=content,
+            class_id=cls.id,
+            created_by=current_user.id,
+            is_important=is_important
+        )
+        
+        # Dosya varsa her sınıf için ayrı kopya oluştur
+        if file and filename:
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            unique_filename = f"announcement_{cls.id}_{timestamp}_{filename}"
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+            file.seek(0)  # Dosyayı başa al
+            file.save(file_path)
+            announcement.file_name = filename
+            announcement.file_path = file_path
+        
+        db.session.add(announcement)
+        db.session.commit()
+        
+        # Öğrencilere bildirim gönder
+        notify_students_new_announcement(announcement, cls)
+        success_count += 1
+    
+    flash(f'Bilgilendirme "{title}" {success_count} sınıfa başarıyla gönderildi!', 'success')
+    return redirect(url_for('admin_classes'))
+
+@app.route('/admin/assignments/bulk-create', methods=['POST'])
+@login_required
+def bulk_create_assignment():
+    """Toplu ödev ver"""
+    if current_user.role != 'admin':
+        flash('Bu işlem için yetkiniz yok!', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    class_ids_str = request.form.get('class_ids', '')
+    if not class_ids_str:
+        flash('Lütfen en az bir sınıf seçin!', 'danger')
+        return redirect(url_for('admin_classes'))
+    
+    class_ids = [int(id.strip()) for id in class_ids_str.split(',') if id.strip()]
+    
+    # Sadece kendi sınıflarını kontrol et
+    classes = Class.query.filter(
+        Class.id.in_(class_ids),
+        Class.created_by == current_user.id
+    ).all()
+    
+    if not classes:
+        flash('Geçerli sınıf bulunamadı!', 'danger')
+        return redirect(url_for('admin_classes'))
+    
+    title = request.form.get('title')
+    description = request.form.get('description')
+    due_date_str = request.form.get('due_date')
+    max_score = request.form.get('max_score', 100)
+    
+    due_date = datetime.strptime(due_date_str, '%Y-%m-%dT%H:%M')
+    
+    success_count = 0
+    for cls in classes:
+        assignment = Assignment(
+            title=title,
+            description=description,
+            class_id=cls.id,
+            due_date=due_date,
+            max_score=int(max_score)
+        )
+        
+        db.session.add(assignment)
+        db.session.commit()
+        
+        # Öğrencilere bildirim gönder
+        notify_students_new_assignment(assignment, cls)
+        success_count += 1
+    
+    flash(f'Ödev "{title}" {success_count} sınıfa başarıyla verildi!', 'success')
+    return redirect(url_for('admin_classes'))
+
 @app.route('/admin/announcements/<int:announcement_id>/delete', methods=['POST'])
 @login_required
 def delete_announcement(announcement_id):
