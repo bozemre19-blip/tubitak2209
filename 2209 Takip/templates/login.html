@@ -31,12 +31,28 @@
                 </button>
             </form>
             
+            {% if show_resend_link %}
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle"></i> 
+                Email adresiniz doğrulanmamış. 
+                <a href="{{ url_for('resend_verification', email=user_email) }}" class="alert-link">
+                    Doğrulama linkini yeniden gönder
+                </a>
+            </div>
+            {% endif %}
+            
             <hr class="my-4">
             
             <div class="text-center">
                 <p class="mb-0">Hesabınız yok mu?</p>
                 <a href="{{ url_for('register') }}" class="btn btn-outline-secondary mt-2">
                     <i class="bi bi-person-plus"></i> Kayıt Ol
+                </a>
+            </div>
+            
+            <div class="text-center mt-3">
+                <a href="{{ url_for('resend_verification') }}" class="text-muted small">
+                    <i class="bi bi-envelope"></i> Email doğrulama linkini yeniden gönder
                 </a>
             </div>
         </div>

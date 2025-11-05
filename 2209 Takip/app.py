@@ -5,7 +5,8 @@ from werkzeug.utils import secure_filename
 from config import Config
 from models import db, User, Class, Assignment, Submission, Announcement, AnnouncementRead, Notification, ProgramAnnouncement
 import os
-from datetime import datetime
+import secrets
+from datetime import datetime, timedelta
 # TÜBİTAK scraper özelliği kaldırıldı
 
 app = Flask(__name__)
@@ -28,7 +29,7 @@ def allowed_file(filename):
 
 # ============ Bildirim Sistemi ============
 
-def send_email_notification(to_email, subject, body):
+def send_email_notification(to_email, subject, body, html_body=None):
     """Email bildirimi gönder"""
     try:
         msg = Message(
@@ -37,12 +38,15 @@ def send_email_notification(to_email, subject, body):
             body=body,
             sender=app.config['MAIL_DEFAULT_SENDER']
         )
+        if html_body:
+            msg.html = html_body
         mail.send(msg)
         print(f"✅ Email gönderildi: {to_email} - {subject}")
+        return True
     except Exception as e:
         # Email gönderme hatası kritik değil, sadece logla
         print(f"⚠️ Email gönderme hatası ({to_email}): {e}")
-        # Site içi bildirim zaten oluşturuldu, email hatası kritik değil
+        return False
 
 def create_notification(user_id, title, message, notif_type, icon='bi-bell', link=None, send_email=False):
     """Bildirim oluştur (email gönderme kaldırıldı)"""
@@ -181,13 +185,20 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
+        remember = request.form.get('remember') == 'on'
         
         user = User.query.filter_by(username=username).first()
         
         if user and user.check_password(password):
-            login_user(user, remember=True)
+            # Email doğrulaması kontrolü (opsiyonel - zorunlu değil)
+            if not user.email_verified:
+                flash('Email adresiniz henüz doğrulanmamış. Lütfen email kutunuzu kontrol edin veya doğrulama linkini yeniden talep edin.', 'warning')
+                return render_template('login.html', show_resend_link=True, user_email=user.email)
+            
+            login_user(user, remember=remember)
             flash(f'Hoş geldiniz, {user.full_name}!', 'success')
-            return redirect(url_for('dashboard'))
+            next_page = request.args.get('next')
+            return redirect(next_page) if next_page else redirect(url_for('dashboard'))
         else:
             flash('Kullanıcı adı veya şifre hatalı!', 'danger')
     
@@ -219,23 +230,181 @@ def register():
             flash('Bu email adresi zaten kayıtlı!', 'danger')
             return render_template('register.html')
         
+        # Email doğrulama token oluştur
+        verification_token = secrets.token_urlsafe(32)
+        
         # Yeni kullanıcı oluştur
         user = User(
             username=username,
             email=email,
             full_name=full_name,
-            role=role
+            role=role,
+            email_verified=False,
+            email_verification_token=verification_token,
+            email_verification_sent_at=datetime.utcnow()
         )
         user.set_password(password)
         
         db.session.add(user)
         db.session.commit()
         
+        # Email doğrulama linki oluştur
+        site_url = app.config.get('BASE_URL', request.url_root.rstrip('/'))
+        verification_url = f"{site_url}{url_for('verify_email', token=verification_token)}"
+        
+        # Email gönder (try-except ile korumalı)
         role_text = 'öğretmen' if role == 'admin' else 'öğrenci'
-        flash(f'Kayıt başarılı! {role_text.capitalize()} hesabınızla giriş yapabilirsiniz.', 'success')
+        email_subject = "Email Doğrulama - Öğrenci Takip Sistemi"
+        email_body = f"""
+Merhaba {full_name},
+
+Öğrenci Takip Sistemi'ne kayıt olduğunuz için teşekkür ederiz!
+
+Email adresinizi doğrulamak için aşağıdaki linke tıklayın:
+{verification_url}
+
+Bu link 24 saat geçerlidir.
+
+Eğer bu kayıt işlemini siz yapmadıysanız, bu emaili görmezden gelebilirsiniz.
+
+---
+Öğrenci Takip Sistemi
+        """
+        
+        email_html = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #28a745;">Email Doğrulama</h2>
+                <p>Merhaba <strong>{full_name}</strong>,</p>
+                <p>Öğrenci Takip Sistemi'ne kayıt olduğunuz için teşekkür ederiz!</p>
+                <p>Email adresinizi doğrulamak için aşağıdaki butona tıklayın:</p>
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="{verification_url}" style="background-color: #28a745; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Email'i Doğrula</a>
+                </div>
+                <p style="font-size: 12px; color: #666;">Veya bu linki tarayıcınıza kopyalayın:<br>
+                <a href="{verification_url}" style="color: #007bff; word-break: break-all;">{verification_url}</a></p>
+                <p style="font-size: 12px; color: #666;">Bu link 24 saat geçerlidir.</p>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                <p style="font-size: 12px; color: #999;">Eğer bu kayıt işlemini siz yapmadıysanız, bu emaili görmezden gelebilirsiniz.</p>
+                <p style="font-size: 12px; color: #999; margin-top: 20px;">Öğrenci Takip Sistemi</p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        email_sent = send_email_notification(email, email_subject, email_body, email_html)
+        
+        if email_sent:
+            flash(f'Kayıt başarılı! Email adresinize doğrulama linki gönderildi. Lütfen email kutunuzu kontrol edin.', 'success')
+        else:
+            flash(f'Kayıt başarılı! Ancak email gönderilemedi. Lütfen profil ayarlarından email doğrulama linkini yeniden talep edin.', 'warning')
+        
+        role_text = 'öğretmen' if role == 'admin' else 'öğrenci'
         return redirect(url_for('login'))
     
     return render_template('register.html')
+
+@app.route('/verify-email/<token>')
+def verify_email(token):
+    """Email doğrulama"""
+    user = User.query.filter_by(email_verification_token=token).first()
+    
+    if not user:
+        flash('Geçersiz veya süresi dolmuş doğrulama linki!', 'danger')
+        return redirect(url_for('login'))
+    
+    # Token süresi kontrolü (24 saat)
+    if user.email_verification_sent_at:
+        token_age = datetime.utcnow() - user.email_verification_sent_at
+        if token_age > timedelta(hours=24):
+            flash('Doğrulama linkinin süresi dolmuş. Lütfen yeni bir link talep edin.', 'warning')
+            return redirect(url_for('resend_verification', email=user.email))
+    
+    # Email'i doğrula
+    user.email_verified = True
+    user.email_verification_token = None
+    user.email_verification_sent_at = None
+    db.session.commit()
+    
+    flash('Email adresiniz başarıyla doğrulandı! Artık sisteme giriş yapabilirsiniz.', 'success')
+    return redirect(url_for('login'))
+
+@app.route('/resend-verification')
+def resend_verification():
+    """Email doğrulama linkini yeniden gönder"""
+    email = request.args.get('email')
+    if not email:
+        return render_template('resend_verification.html')
+    
+    if request.method == 'POST':
+        email = request.form.get('email')
+        user = User.query.filter_by(email=email).first()
+        
+        if not user:
+            flash('Bu email adresi ile kayıtlı kullanıcı bulunamadı!', 'danger')
+            return render_template('resend_verification.html')
+        
+        if user.email_verified:
+            flash('Bu email adresi zaten doğrulanmış!', 'info')
+            return redirect(url_for('login'))
+        
+        # Yeni token oluştur
+        verification_token = secrets.token_urlsafe(32)
+        user.email_verification_token = verification_token
+        user.email_verification_sent_at = datetime.utcnow()
+        db.session.commit()
+        
+        # Email gönder
+        site_url = app.config.get('BASE_URL', request.url_root.rstrip('/'))
+        verification_url = f"{site_url}{url_for('verify_email', token=verification_token)}"
+        
+        email_subject = "Email Doğrulama - Öğrenci Takip Sistemi"
+        email_body = f"""
+Merhaba {user.full_name},
+
+Email doğrulama linkinizi yeniden gönderiyoruz.
+
+Email adresinizi doğrulamak için aşağıdaki linke tıklayın:
+{verification_url}
+
+Bu link 24 saat geçerlidir.
+
+---
+Öğrenci Takip Sistemi
+        """
+        
+        email_html = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #28a745;">Email Doğrulama</h2>
+                <p>Merhaba <strong>{user.full_name}</strong>,</p>
+                <p>Email doğrulama linkinizi yeniden gönderiyoruz.</p>
+                <p>Email adresinizi doğrulamak için aşağıdaki butona tıklayın:</p>
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="{verification_url}" style="background-color: #28a745; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Email'i Doğrula</a>
+                </div>
+                <p style="font-size: 12px; color: #666;">Veya bu linki tarayıcınıza kopyalayın:<br>
+                <a href="{verification_url}" style="color: #007bff; word-break: break-all;">{verification_url}</a></p>
+                <p style="font-size: 12px; color: #666;">Bu link 24 saat geçerlidir.</p>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                <p style="font-size: 12px; color: #999; margin-top: 20px;">Öğrenci Takip Sistemi</p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        email_sent = send_email_notification(email, email_subject, email_body, email_html)
+        
+        if email_sent:
+            flash('Email doğrulama linki yeniden gönderildi! Lütfen email kutunuzu kontrol edin.', 'success')
+        else:
+            flash('Email gönderilemedi. Lütfen daha sonra tekrar deneyin.', 'warning')
+        
+        return redirect(url_for('login'))
+    
+    return render_template('resend_verification.html', email=email or '')
 
 @app.route('/profile')
 @login_required

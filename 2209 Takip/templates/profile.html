@@ -27,7 +27,23 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <strong>E-posta:</strong>
-                            <p class="text-muted">{{ current_user.email }}</p>
+                            <p class="text-muted">
+                                {{ current_user.email }}
+                                {% if current_user.email_verified %}
+                                    <span class="badge bg-success ms-2">
+                                        <i class="bi bi-check-circle"></i> Doğrulanmış
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark ms-2">
+                                        <i class="bi bi-exclamation-triangle"></i> Doğrulanmamış
+                                    </span>
+                                {% endif %}
+                            </p>
+                            {% if not current_user.email_verified %}
+                            <a href="{{ url_for('resend_verification', email=current_user.email) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-envelope"></i> Doğrulama Linkini Gönder
+                            </a>
+                            {% endif %}
                         </div>
                         <div class="col-md-6 mb-3">
                             <strong>Hesap Türü:</strong>

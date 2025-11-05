@@ -20,6 +20,10 @@ class User(UserMixin, db.Model):
     full_name = db.Column(db.String(150), nullable=False)
     role = db.Column(db.String(20), nullable=False, default='student')  # 'admin' or 'student'
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    # Email doğrulama
+    email_verified = db.Column(db.Boolean, default=False, nullable=False)
+    email_verification_token = db.Column(db.String(100), unique=True, nullable=True)
+    email_verification_sent_at = db.Column(db.DateTime, nullable=True)
     
     # İlişkiler
     enrolled_classes = db.relationship('Class', secondary=student_classes, 
