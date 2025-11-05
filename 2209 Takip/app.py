@@ -226,17 +226,16 @@ def migrate_email_verification_columns():
 
 # Create database tables and upload folder
 with app.app_context():
-    db.create_all()
-    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-    
-    # Email doğrulama kolonlarını ekle (migration) - db.create_all sonrası
     try:
+        # Önce tabloları oluştur
+        db.create_all()
+        
+        # Email doğrulama kolonlarını ekle (migration) - db.create_all sonrası
         migrate_email_verification_columns()
-    except Exception as e:
-        print(f"⚠️ Migration hatası (kritik değil, devam ediliyor): {e}")
-    
-    # İlk admin kullanıcısını oluştur (yoksa)
-    try:
+        
+        os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+        
+        # İlk admin kullanıcısını oluştur (yoksa)
         admin = User.query.filter_by(username='admin').first()
         if not admin:
             admin = User(
@@ -251,7 +250,7 @@ with app.app_context():
             db.session.commit()
             print("✓ Admin kullanıcısı oluşturuldu (Kullanıcı adı: admin, Şifre: admin123)")
     except Exception as e:
-        print(f"⚠️ Admin kullanıcısı oluşturma hatası (kritik değil): {e}")
+        print(f"⚠️ Database initialization hatası: {e}")
         import traceback
         traceback.print_exc()
         try:
