@@ -5,21 +5,23 @@
 {% block content %}
 <style>
 /* Login sayfasında navbar ve footer'ı gizle */
-body.login-page-active .navbar,
-body.login-page-active .footer,
-body.login-page-active main.container {
+body .navbar,
+body .footer {
     display: none !important;
 }
 
-body.login-page-active {
+body {
     margin: 0;
     padding: 0;
     overflow: hidden;
 }
+
+main.container {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+}
 </style>
-<script>
-document.body.classList.add('login-page-active');
-</script>
 <div class="login-page">
     <div class="login-container">
         <div class="login-card">
