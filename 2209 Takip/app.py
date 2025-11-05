@@ -155,6 +155,12 @@ with app.app_context():
     db.create_all()
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     
+    # Email doğrulama kolonlarını ekle (migration) - db.create_all sonrası
+    try:
+        migrate_email_verification_columns()
+    except Exception as e:
+        print(f"⚠️ Migration hatası (kritik değil, devam ediliyor): {e}")
+    
     # İlk admin kullanıcısını oluştur (yoksa)
     admin = User.query.filter_by(username='admin').first()
     if not admin:
@@ -162,7 +168,8 @@ with app.app_context():
             username='admin',
             email='admin@tubitak.gov.tr',
             full_name='Sistem Yöneticisi',
-            role='admin'
+            role='admin',
+            email_verified=True  # Admin otomatik doğrulanmış
         )
         admin.set_password('admin123')
         db.session.add(admin)
