@@ -218,6 +218,7 @@
                                 <th>Kullanıcı Adı</th>
                                 <th>E-posta</th>
                                 <th>Kayıt Tarihi</th>
+                                <th>İşlemler</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -229,6 +230,14 @@
                                 <td>{{ student.username }}</td>
                                 <td>{{ student.email }}</td>
                                 <td>{{ student.created_at|date }}</td>
+                                <td>
+                                    <form method="POST" action="{{ url_for('admin_remove_student', class_id=cls.id, student_id=student.id) }}" 
+                                          onsubmit="return confirm('{{ student.full_name }} adlı öğrenciyi bu sınıftan çıkarmak istediğinizden emin misiniz?');" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Sınıftan Çıkar">
+                                            <i class="bi bi-person-dash"></i> Çıkar
+                                        </button>
+                                    </form>
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>

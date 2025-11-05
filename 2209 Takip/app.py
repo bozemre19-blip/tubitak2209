@@ -44,8 +44,8 @@ def send_email_notification(to_email, subject, body):
         print(f"⚠️ Email gönderme hatası ({to_email}): {e}")
         # Site içi bildirim zaten oluşturuldu, email hatası kritik değil
 
-def create_notification(user_id, title, message, notif_type, icon='bi-bell', link=None, send_email=True):
-    """Bildirim oluştur ve email gönder"""
+def create_notification(user_id, title, message, notif_type, icon='bi-bell', link=None, send_email=False):
+    """Bildirim oluştur (email gönderme kaldırıldı)"""
     # Site içi bildirim oluştur
     notification = Notification(
         user_id=user_id,
@@ -58,24 +58,7 @@ def create_notification(user_id, title, message, notif_type, icon='bi-bell', lin
     db.session.add(notification)
     db.session.commit()
     
-    # Email bildirimi gönder
-    if send_email:
-        user = User.query.get(user_id)
-        if user and user.email:
-            site_url = app.config.get('BASE_URL', 'https://tubitak2209.onrender.com')
-            email_body = f"""
-Merhaba {user.full_name},
-
-{message}
-
-Detaylar için sisteme giriş yapabilirsiniz:
-{site_url}
-
----
-Öğrenci Takip Sistemi
-Bu otomatik bir bildirimdir.
-"""
-            send_email_notification(user.email, title, email_body)
+    # Email gönderme özelliği kaldırıldı
 
 def notify_students_new_assignment(assignment, class_obj):
     """Yeni ödev eklendiğinde öğrencilere bildir"""
@@ -90,7 +73,7 @@ def notify_students_new_assignment(assignment, class_obj):
                     notif_type='assignment',
                     icon='bi-file-earmark-text',
                     link=url_for('student_class_assignments', class_id=class_obj.id),
-                    send_email=False  # Email göndermeyi devre dışı bırak (timeout olmasın)
+                    send_email=False
                 )
             except Exception as e:
                 # Tek bir öğrenciye bildirim göndermede hata olsa bile devam et
@@ -139,7 +122,7 @@ def notify_students_new_announcement(announcement, class_obj):
                     notif_type='announcement',
                     icon='bi-megaphone' if announcement.is_important else 'bi-info-circle',
                     link=url_for('student_classes'),
-                    send_email=False  # Email göndermeyi devre dışı bırak (timeout olmasın)
+                    send_email=False
                 )
             except Exception as e:
                 # Tek bir öğrenciye bildirim göndermede hata olsa bile devam et
@@ -557,6 +540,41 @@ def admin_class_detail(class_id):
     assignments = cls.assignments
     
     return render_template('admin/class_detail.html', cls=cls, students=students, assignments=assignments)
+
+@app.route('/admin/classes/<int:class_id>/students/<int:student_id>/remove', methods=['POST'])
+@login_required
+def admin_remove_student(class_id, student_id):
+    """Öğrenciyi sınıftan çıkar"""
+    try:
+        if current_user.role != 'admin':
+            flash('Bu işlem için yetkiniz yok!', 'danger')
+            return redirect(url_for('dashboard'))
+        
+        cls = Class.query.get_or_404(class_id)
+        
+        # Sadece kendi sınıfından öğrenci çıkarabilir
+        if cls.created_by != current_user.id:
+            flash('Bu sınıftan öğrenci çıkarma yetkiniz yok!', 'danger')
+            return redirect(url_for('admin_classes'))
+        
+        student = User.query.get_or_404(student_id)
+        
+        # Öğrenci bu sınıfa kayıtlı mı?
+        if cls in student.enrolled_classes:
+            student.enrolled_classes.remove(cls)
+            db.session.commit()
+            flash(f'{student.full_name} sınıftan çıkarıldı.', 'success')
+        else:
+            flash('Bu öğrenci sınıfa kayıtlı değil!', 'warning')
+        
+        return redirect(url_for('admin_class_detail', class_id=class_id))
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Öğrenci çıkarma hatası: {e}")
+        import traceback
+        traceback.print_exc()
+        flash('Öğrenci çıkarılırken bir hata oluştu!', 'danger')
+        return redirect(url_for('admin_class_detail', class_id=class_id))
 
 # ============ Admin: Ödev Yönetimi ============
 
