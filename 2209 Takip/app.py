@@ -1566,8 +1566,8 @@ def migrate_email_verification_columns():
                 db.session.execute(text('ALTER TABLE "user" ADD COLUMN email_verification_sent_at TIMESTAMP'))
                 print("✅ email_verification_sent_at kolonu eklendi")
             
-            # Mevcut kullanıcıları doğrulanmış yap (eğer email_verified NULL ise)
-            db.session.execute(text('UPDATE "user" SET email_verified = FALSE WHERE email_verified IS NULL'))
+            # Mevcut kullanıcıları doğrulanmış yap (email doğrulama önceden yoktu, bu yüzden hepsini doğrulanmış kabul et)
+            db.session.execute(text('UPDATE "user" SET email_verified = TRUE WHERE email_verified IS NULL OR email_verified = FALSE'))
             
             db.session.commit()
             print("✅ Email doğrulama migration tamamlandı")
