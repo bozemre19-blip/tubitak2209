@@ -995,31 +995,46 @@ def bulk_create_assignment():
 @app.route('/admin/announcements/<int:announcement_id>/delete', methods=['POST'])
 @login_required
 def delete_announcement(announcement_id):
-    if current_user.role != 'admin':
-        flash('Bu işlem için yetkiniz yok!', 'danger')
-        return redirect(url_for('dashboard'))
-    
-    announcement = Announcement.query.get_or_404(announcement_id)
-    
-    # Sadece kendi oluşturduğu bilgilendirmeyi silebilir
-    if announcement.created_by != current_user.id:
-        flash('Bu bilgilendirmeyi silme yetkiniz yok!', 'danger')
+    try:
+        if current_user.role != 'admin':
+            flash('Bu işlem için yetkiniz yok!', 'danger')
+            return redirect(url_for('dashboard'))
+        
+        announcement = Announcement.query.get_or_404(announcement_id)
+        
+        # Sadece kendi oluşturduğu bilgilendirmeyi silebilir
+        if announcement.created_by != current_user.id:
+            flash('Bu bilgilendirmeyi silme yetkiniz yok!', 'danger')
+            return redirect(url_for('admin_classes'))
+        
+        class_id = announcement.class_id
+        announcement_title = announcement.title
+        
+        # Dosya varsa sil
+        if announcement.file_path and os.path.exists(announcement.file_path):
+            try:
+                os.remove(announcement.file_path)
+            except Exception as e:
+                print(f"⚠️ Dosya silme hatası: {e}")
+        
+        db.session.delete(announcement)
+        db.session.commit()
+        
+        flash(f'Bilgilendirme "{announcement_title}" başarıyla silindi!', 'success')
+        
+        # Nereden geldiyse oraya yönlendir
+        referer = request.headers.get('Referer')
+        if referer and 'dashboard' in referer:
+            return redirect(url_for('dashboard'))
+        else:
+            return redirect(url_for('admin_class_detail', class_id=class_id))
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Bilgilendirme silme hatası: {e}")
+        import traceback
+        traceback.print_exc()
+        flash('Bilgilendirme silinirken bir hata oluştu!', 'danger')
         return redirect(url_for('admin_classes'))
-    
-    class_id = announcement.class_id
-    
-    # Dosya varsa sil
-    if announcement.file_path and os.path.exists(announcement.file_path):
-        try:
-            os.remove(announcement.file_path)
-        except:
-            pass
-    
-    db.session.delete(announcement)
-    db.session.commit()
-    
-    flash('Bilgilendirme silindi.', 'success')
-    return redirect(url_for('admin_class_detail', class_id=class_id))
 
 # ============ TÜBİTAK 2209-A Program Duyuruları ============
 

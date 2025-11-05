@@ -164,11 +164,17 @@
                                     </small>
                                 </div>
                             </div>
-                            <div class="ms-3">
+                            <div class="ms-3 d-flex gap-2">
                                 <a href="{{ url_for('announcement_readers', announcement_id=item.announcement.id) }}" 
                                    class="btn btn-sm btn-outline-info">
                                     <i class="bi bi-people"></i> Detay
                                 </a>
+                                <form method="POST" action="{{ url_for('delete_announcement', announcement_id=item.announcement.id) }}" 
+                                      onsubmit="return confirm('Bu bilgilendirmeyi silmek istediğinizden emin misiniz?');" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Sil">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     </div>
