@@ -127,62 +127,19 @@
                                        class="btn btn-sm btn-primary mb-1">
                                         <i class="bi bi-download"></i> İndir
                                     </a>
-                                    <button class="btn btn-sm btn-success mb-1" 
+                                    <button class="btn btn-sm btn-success mb-1 grade-btn" 
+                                            data-submission-id="{{ submission.id }}"
+                                            data-student-name="{{ submission.student.full_name }}"
+                                            data-student-comment="{{ submission.student_comment or '' }}"
+                                            data-current-score="{{ submission.score or '' }}"
+                                            data-current-feedback="{{ submission.feedback or '' }}"
+                                            data-max-score="{{ assignment.max_score }}"
                                             data-bs-toggle="modal" 
-                                            data-bs-target="#gradeModal{{ submission.id }}">
+                                            data-bs-target="#gradeModal">
                                         <i class="bi bi-pencil"></i> Notlandır
                                     </button>
                                 </td>
                             </tr>
-                            
-                            <!-- Notlandırma Modal -->
-                            <div class="modal fade" id="gradeModal{{ submission.id }}" tabindex="-1">
-                                <div class="modal-dialog">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title">Notlandır: {{ submission.student.full_name }}</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                        </div>
-                                        <form method="POST" action="{{ url_for('grade_submission', submission_id=submission.id) }}">
-                                            <div class="modal-body">
-                                                {% if submission.student_comment %}
-                                                <div class="alert alert-info">
-                                                    <strong><i class="bi bi-chat-left-text"></i> Öğrenci Açıklaması:</strong>
-                                                    <p class="mb-0 mt-2 fst-italic">"{{ submission.student_comment }}"</p>
-                                                </div>
-                                                {% endif %}
-                                                
-                                                <div class="mb-3">
-                                                    <label for="score{{ submission.id }}" class="form-label">
-                                                        Not (Max: {{ assignment.max_score }})
-                                                    </label>
-                                                    <input type="number" class="form-control" 
-                                                           id="score{{ submission.id }}" name="score" 
-                                                           min="0" max="{{ assignment.max_score }}" 
-                                                           value="{{ submission.score or '' }}" required>
-                                                </div>
-                                                
-                                                <div class="mb-3">
-                                                    <label for="feedback{{ submission.id }}" class="form-label">
-                                                        Geri Bildirim
-                                                    </label>
-                                                    <textarea class="form-control" 
-                                                              id="feedback{{ submission.id }}" name="feedback" 
-                                                              rows="4" placeholder="Öğrenciye geri bildirim yazın...">{{ submission.feedback or '' }}</textarea>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                                    İptal
-                                                </button>
-                                                <button type="submit" class="btn btn-success">
-                                                    <i class="bi bi-check-circle"></i> Kaydet
-                                                </button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -234,5 +191,101 @@
     </div>
 </div>
 {% endif %}
+
+<!-- Tek Notlandırma Modal (Dinamik) -->
+<div class="modal fade" id="gradeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="gradeModalTitle">Notlandır</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" id="gradeForm" action="">
+                <div class="modal-body">
+                    <div id="studentCommentSection" style="display: none;">
+                        <div class="alert alert-info">
+                            <strong><i class="bi bi-chat-left-text"></i> Öğrenci Açıklaması:</strong>
+                            <p class="mb-0 mt-2 fst-italic" id="studentCommentText"></p>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="scoreInput" class="form-label">
+                            Not (Max: <span id="maxScoreSpan"></span>)
+                        </label>
+                        <input type="number" class="form-control" 
+                               id="scoreInput" name="score" 
+                               min="0" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="feedbackInput" class="form-label">
+                            Geri Bildirim
+                        </label>
+                        <textarea class="form-control" 
+                                  id="feedbackInput" name="feedback" 
+                                  rows="4" placeholder="Öğrenciye geri bildirim yazın..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        İptal
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Kaydet
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Modal açıldığında içeriği dinamik olarak doldur
+document.addEventListener('DOMContentLoaded', function() {
+    const gradeButtons = document.querySelectorAll('.grade-btn');
+    const gradeModal = new bootstrap.Modal(document.getElementById('gradeModal'));
+    const gradeForm = document.getElementById('gradeForm');
+    const gradeModalTitle = document.getElementById('gradeModalTitle');
+    const studentCommentSection = document.getElementById('studentCommentSection');
+    const studentCommentText = document.getElementById('studentCommentText');
+    const scoreInput = document.getElementById('scoreInput');
+    const feedbackInput = document.getElementById('feedbackInput');
+    const maxScoreSpan = document.getElementById('maxScoreSpan');
+    
+    gradeButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const submissionId = this.getAttribute('data-submission-id');
+            const studentName = this.getAttribute('data-student-name');
+            const studentComment = this.getAttribute('data-student-comment');
+            const currentScore = this.getAttribute('data-current-score');
+            const currentFeedback = this.getAttribute('data-current-feedback');
+            const maxScore = this.getAttribute('data-max-score');
+            
+            // Form action'ı güncelle
+            gradeForm.action = `/admin/submissions/${submissionId}/grade`;
+            
+            // Modal başlığını güncelle
+            gradeModalTitle.textContent = `Notlandır: ${studentName}`;
+            
+            // Max score'u güncelle
+            maxScoreSpan.textContent = maxScore;
+            scoreInput.setAttribute('max', maxScore);
+            
+            // Öğrenci açıklaması varsa göster
+            if (studentComment && studentComment.trim() !== '') {
+                studentCommentSection.style.display = 'block';
+                studentCommentText.textContent = `"${studentComment}"`;
+            } else {
+                studentCommentSection.style.display = 'none';
+            }
+            
+            // Mevcut not ve geri bildirimi doldur
+            scoreInput.value = currentScore || '';
+            feedbackInput.value = currentFeedback || '';
+        });
+    });
+});
+</script>
 {% endblock %}
 
