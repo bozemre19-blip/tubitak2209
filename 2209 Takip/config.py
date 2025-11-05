@@ -6,7 +6,16 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'tubitak-2209-gizli-anahtar-2024'
     
     # Database configuration
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///tubitak2209.db'
+    # PostgreSQL (Render'da) veya SQLite (local'de) kullan
+    DATABASE_URL = os.environ.get('DATABASE_URL')
+    if DATABASE_URL:
+        # Render PostgreSQL URL'i postgres:// ile başlıyor, SQLAlchemy postgresql:// istiyor
+        if DATABASE_URL.startswith('postgres://'):
+            DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+        SQLALCHEMY_DATABASE_URI = DATABASE_URL
+    else:
+        # Local development için SQLite
+        SQLALCHEMY_DATABASE_URI = 'sqlite:///tubitak2209.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Upload folder configuration
