@@ -744,27 +744,35 @@ def student_classes():
         return redirect(url_for('dashboard'))
     
     my_classes = current_user.enrolled_classes
-    available_classes = Class.query.filter(Class.is_active == True).all()
-    
-    # Henüz katılmadığım sınıflar
-    available_classes = [c for c in available_classes if c not in my_classes]
     
     return render_template('student/classes.html',
-                         my_classes=my_classes,
-                         available_classes=available_classes)
+                         my_classes=my_classes)
 
-@app.route('/student/classes/<int:class_id>/enroll', methods=['POST'])
+@app.route('/student/classes/enroll-by-code', methods=['POST'])
 @login_required
-def enroll_class(class_id):
+def enroll_by_code():
+    """Sınıfa kod ile katıl"""
     try:
         if current_user.role != 'student':
             flash('Bu işlem için yetkiniz yok!', 'danger')
             return redirect(url_for('dashboard'))
         
-        cls = Class.query.get_or_404(class_id)
+        class_code = request.form.get('class_code', '').strip().upper()
         
+        if not class_code:
+            flash('Lütfen bir sınıf kodu girin!', 'danger')
+            return redirect(url_for('student_classes'))
+        
+        # Sınıf koduna göre sınıfı bul
+        cls = Class.query.filter_by(code=class_code, is_active=True).first()
+        
+        if not cls:
+            flash(f'"{class_code}" kodlu bir sınıf bulunamadı! Lütfen kodun doğru olduğundan emin olun.', 'danger')
+            return redirect(url_for('student_classes'))
+        
+        # Öğrenci zaten bu sınıfa kayıtlı mı?
         if cls in current_user.enrolled_classes:
-            flash('Bu sınıfa zaten kayıtlısınız!', 'warning')
+            flash(f'"{cls.name}" sınıfına zaten kayıtlısınız!', 'warning')
         else:
             current_user.enrolled_classes.append(cls)
             db.session.commit()
@@ -777,7 +785,7 @@ def enroll_class(class_id):
         return redirect(url_for('student_classes'))
     except Exception as e:
         db.session.rollback()
-        print(f"❌ Enroll hatası: {e}")
+        print(f"❌ Kod ile kayıt hatası: {e}")
         import traceback
         traceback.print_exc()
         flash('Sınıfa katılırken bir hata oluştu! Lütfen tekrar deneyin.', 'danger')

@@ -56,7 +56,7 @@
                 <div class="empty-state">
                     <i class="bi bi-book"></i>
                     <h5>Henüz hiçbir sınıfa katılmadınız</h5>
-                    <p>Aşağıdaki mevcut sınıflardan birine katılabilirsiniz.</p>
+                    <p>Aşağıdaki formu kullanarak öğretmeninizden aldığınız sınıf kodu ile sınıfa katılabilirsiniz.</p>
                 </div>
                 {% endif %}
             </div>
@@ -64,49 +64,44 @@
     </div>
 </div>
 
-<!-- Katılınabilir Sınıflar -->
+<!-- Sınıfa Kod ile Katıl -->
 <div class="row">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white">
                 <h5 class="mb-0">
-                    <i class="bi bi-plus-circle"></i> Katılınabilir Sınıflar ({{ available_classes|length }})
+                    <i class="bi bi-key-fill"></i> Sınıfa Kod ile Katıl
                 </h5>
             </div>
             <div class="card-body">
-                {% if available_classes %}
-                <div class="row">
-                    {% for class in available_classes %}
-                    <div class="col-md-6 col-lg-4 mb-3">
-                        <div class="card border-success h-100">
-                            <div class="card-body">
-                                <h5 class="card-title">
-                                    <i class="bi bi-book text-success"></i> {{ class.name }}
-                                </h5>
-                                <p class="card-text">
-                                    <strong>Kod:</strong> <span class="badge bg-success">{{ class.code }}</span><br>
-                                    <strong>Açıklama:</strong> {{ class.description or 'Yok' }}<br>
-                                    <strong>Kayıtlı Öğrenci:</strong> {{ class.students.count() }}
-                                </p>
-                                
-                                <form method="POST" action="{{ url_for('enroll_class', class_id=class.id) }}">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                    <button type="submit" class="btn btn-success w-100">
-                                        <i class="bi bi-check-circle"></i> Katıl
-                                    </button>
-                                </form>
+                <div class="row justify-content-center">
+                    <div class="col-md-8 col-lg-6">
+                        <form method="POST" action="{{ url_for('enroll_by_code') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <div class="mb-3">
+                                <label for="class_code" class="form-label">
+                                    <i class="bi bi-tag"></i> Sınıf Kodu
+                                </label>
+                                <input type="text" 
+                                       class="form-control form-control-lg text-center" 
+                                       id="class_code" 
+                                       name="class_code" 
+                                       placeholder="Örn: PYTH2024" 
+                                       required 
+                                       autofocus
+                                       style="font-size: 1.2rem; letter-spacing: 2px; font-weight: bold;">
+                                <small class="form-text text-muted">
+                                    Öğretmeninizden aldığınız sınıf kodunu girin
+                                </small>
                             </div>
-                        </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="bi bi-check-circle"></i> Sınıfa Katıl
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                    {% endfor %}
                 </div>
-                {% else %}
-                <div class="empty-state">
-                    <i class="bi bi-check-circle"></i>
-                    <h5>Tüm sınıflara kayıtlısınız!</h5>
-                    <p>Şu anda katılabileceğiniz başka sınıf yok.</p>
-                </div>
-                {% endif %}
             </div>
         </div>
     </div>
