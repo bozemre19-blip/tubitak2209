@@ -31,7 +31,7 @@ def send_email_notification(to_email, subject, body):
     """Email bildirimi gönder"""
     try:
         msg = Message(
-            subject=f"TÜBİTAK 2209 - {subject}",
+            subject=f"Öğrenci Takip Sistemi - {subject}",
             recipients=[to_email],
             body=body,
             sender=app.config['MAIL_DEFAULT_SENDER']
@@ -71,7 +71,7 @@ Detaylar için sisteme giriş yapabilirsiniz:
 {site_url}
 
 ---
-TÜBİTAK 2209-A Öğrenci Takip Sistemi
+Öğrenci Takip Sistemi
 Bu otomatik bir bildirimdir.
 """
             send_email_notification(user.email, title, email_body)
