@@ -31,18 +31,6 @@ class Config:
     # Session configuration
     PERMANENT_SESSION_LIFETIME = timedelta(hours=24)
     
-    # Mail configuration (Gmail) - MUST be set via environment variables
-    MAIL_SERVER = 'smtp.gmail.com'
-    MAIL_PORT = 587
-    MAIL_USE_TLS = True
-    MAIL_USE_SSL = False
-    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')  # Required via environment variable
-    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')  # Required via environment variable (Gmail App Password)
-    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_USERNAME')  # Required via environment variable
-    MAIL_MAX_EMAILS = None
-    MAIL_ASCII_ATTACHMENTS = False
-    MAIL_TIMEOUT = 3  # 3 saniye timeout (Render'da 30 saniye limit var)
-    
     # Site URL (Render'da veya local'de)
     BASE_URL = os.environ.get('BASE_URL') or 'https://tubitak2209.onrender.com'
 

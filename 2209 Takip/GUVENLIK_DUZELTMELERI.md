@@ -25,30 +25,15 @@
 ---
 
 ### 2. Gmail Password Güvenliği ✅
-**Dosya:** `config.py`
+**Dosya:** `config.py`, `app.py`
 
 **Yapılan:**
-- Hardcoded Gmail password kaldırıldı
-- Environment variable zorunlu yapıldı
+- Gmail/Mail ayarları tamamen kaldırıldı (email gönderme özelliği kullanılmıyor)
+- Mail import ve initialization kaldırıldı
+- send_email_notification fonksiyonu kaldırıldı
 
 **Aksiyon Gereken:**
-1. **Gmail App Password'ı değiştir:**
-   - Gmail hesabına gir → Güvenlik → 2 Adımlı Doğrulama → Uygulama şifreleri
-   - Eski şifreyi sil
-   - Yeni App Password oluştur
-
-2. **Render.com'da:**
-   - Environment Variable ekle:
-     - Key: `MAIL_USERNAME`
-     - Value: `2209takip@gmail.com`
-     - Key: `MAIL_PASSWORD`
-     - Value: Yeni App Password (boşluksuz)
-
-3. **Local Development için (.env):**
-   ```
-   MAIL_USERNAME=2209takip@gmail.com
-   MAIL_PASSWORD=yeni-app-password
-   ```
+- **Hiçbir şey yapmana gerek yok!** Email özelliği kaldırıldığı için Gmail ayarlarına gerek yok.
 
 ---
 
@@ -172,9 +157,8 @@ Aşağıdaki template dosyalarına CSRF token eklenmeli:
 1. **Environment Variables ekle:**
    ```
    SECRET_KEY=generated-secret-key-here
-   MAIL_USERNAME=2209takip@gmail.com
-   MAIL_PASSWORD=new-app-password
    ```
+   **Not:** Gmail ayarlarına gerek yok, email özelliği kaldırıldı.
 
 2. **Deploy:**
    - Git push yap
@@ -189,9 +173,8 @@ Aşağıdaki template dosyalarına CSRF token eklenmeli:
    ```bash
    # .env (proje kök dizininde)
    SECRET_KEY=local-development-secret-key
-   MAIL_USERNAME=2209takip@gmail.com
-   MAIL_PASSWORD=app-password
    ```
+   **Not:** Gmail ayarlarına gerek yok, email özelliği kaldırıldı.
 
 2. **Dependencies yükle:**
    ```bash
@@ -213,9 +196,8 @@ Aşağıdaki template dosyalarına CSRF token eklenmeli:
    - Her ortam için farklı key kullan
 
 2. **Gmail Password:**
-   - Eski password'ü GitHub'dan kaldırdık
-   - Yeni password'ü sadece environment variable olarak kullan
-   - .env dosyasını .gitignore'a ekle
+   - Email özelliği kaldırıldı, Gmail ayarlarına gerek yok
+   - Mail import ve tüm mail kodları temizlendi
 
 3. **CSRF Token:**
    - Tüm POST formlarına ekle
