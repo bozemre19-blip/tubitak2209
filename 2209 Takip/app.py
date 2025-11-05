@@ -1548,40 +1548,72 @@ def inject_now():
 def migrate_email_verification_columns():
     """PostgreSQL'de email doğrulama kolonlarını ekle (eğer yoksa)"""
     try:
-        from sqlalchemy import text
-        with app.app_context():
-            # Kolonları kontrol et ve ekle
-            inspector = db.inspect(db.engine)
-            columns = [col['name'] for col in inspector.get_columns('user')]
-            
-            if 'email_verified' not in columns:
+        from sqlalchemy import text, inspect
+        from sqlalchemy.exc import OperationalError, ProgrammingError
+        
+        # Kolonları kontrol et ve ekle
+        inspector = inspect(db.engine)
+        
+        # user tablosu var mı kontrol et
+        if not inspector.has_table('user'):
+            print("⚠️ 'user' tablosu bulunamadı, migration atlanıyor")
+            return
+        
+        columns = [col['name'] for col in inspector.get_columns('user')]
+        
+        if 'email_verified' not in columns:
+            try:
                 db.session.execute(text('ALTER TABLE "user" ADD COLUMN email_verified BOOLEAN DEFAULT FALSE NOT NULL'))
+                db.session.commit()
                 print("✅ email_verified kolonu eklendi")
-            
-            if 'email_verification_token' not in columns:
+            except (OperationalError, ProgrammingError) as e:
+                if 'already exists' in str(e).lower() or 'duplicate' in str(e).lower():
+                    print("ℹ️ email_verified kolonu zaten var")
+                else:
+                    raise
+                db.session.rollback()
+        
+        if 'email_verification_token' not in columns:
+            try:
                 db.session.execute(text('ALTER TABLE "user" ADD COLUMN email_verification_token VARCHAR(100)'))
+                db.session.commit()
                 print("✅ email_verification_token kolonu eklendi")
-            
-            if 'email_verification_sent_at' not in columns:
+            except (OperationalError, ProgrammingError) as e:
+                if 'already exists' in str(e).lower() or 'duplicate' in str(e).lower():
+                    print("ℹ️ email_verification_token kolonu zaten var")
+                else:
+                    raise
+                db.session.rollback()
+        
+        if 'email_verification_sent_at' not in columns:
+            try:
                 db.session.execute(text('ALTER TABLE "user" ADD COLUMN email_verification_sent_at TIMESTAMP'))
+                db.session.commit()
                 print("✅ email_verification_sent_at kolonu eklendi")
-            
-            # Mevcut kullanıcıları doğrulanmış yap (email doğrulama önceden yoktu, bu yüzden hepsini doğrulanmış kabul et)
-            db.session.execute(text('UPDATE "user" SET email_verified = TRUE WHERE email_verified IS NULL OR email_verified = FALSE'))
-            
+            except (OperationalError, ProgrammingError) as e:
+                if 'already exists' in str(e).lower() or 'duplicate' in str(e).lower():
+                    print("ℹ️ email_verification_sent_at kolonu zaten var")
+                else:
+                    raise
+                db.session.rollback()
+        
+        # Mevcut kullanıcıları doğrulanmış yap (sadece NULL olanlar)
+        try:
+            db.session.execute(text('UPDATE "user" SET email_verified = TRUE WHERE email_verified IS NULL'))
             db.session.commit()
-            print("✅ Email doğrulama migration tamamlandı")
+        except Exception as e:
+            print(f"⚠️ Kullanıcı güncelleme hatası (kritik değil): {e}")
+            db.session.rollback()
+        
+        print("✅ Email doğrulama migration tamamlandı")
     except Exception as e:
-        print(f"⚠️ Migration hatası (kritik değil): {e}")
-        db.session.rollback()
-        # Hata olsa bile devam et (kolonlar zaten varsa hata verebilir)
-
-# Uygulama başlangıcında migration çalıştır
-with app.app_context():
-    try:
-        migrate_email_verification_columns()
-    except Exception as e:
-        print(f"⚠️ Migration başlangıç hatası (kritik değil): {e}")
+        print(f"⚠️ Migration hatası (kritik değil, devam ediliyor): {e}")
+        import traceback
+        traceback.print_exc()
+        try:
+            db.session.rollback()
+        except:
+            pass
 
 if __name__ == '__main__':
     # debug=False yapın üretim ortamında
