@@ -1544,6 +1544,45 @@ def format_date(value):
 def inject_now():
     return {'now': datetime.utcnow}
 
+# Database migration - Email doğrulama kolonlarını ekle
+def migrate_email_verification_columns():
+    """PostgreSQL'de email doğrulama kolonlarını ekle (eğer yoksa)"""
+    try:
+        from sqlalchemy import text
+        with app.app_context():
+            # Kolonları kontrol et ve ekle
+            inspector = db.inspect(db.engine)
+            columns = [col['name'] for col in inspector.get_columns('user')]
+            
+            if 'email_verified' not in columns:
+                db.session.execute(text('ALTER TABLE "user" ADD COLUMN email_verified BOOLEAN DEFAULT FALSE NOT NULL'))
+                print("✅ email_verified kolonu eklendi")
+            
+            if 'email_verification_token' not in columns:
+                db.session.execute(text('ALTER TABLE "user" ADD COLUMN email_verification_token VARCHAR(100)'))
+                print("✅ email_verification_token kolonu eklendi")
+            
+            if 'email_verification_sent_at' not in columns:
+                db.session.execute(text('ALTER TABLE "user" ADD COLUMN email_verification_sent_at TIMESTAMP'))
+                print("✅ email_verification_sent_at kolonu eklendi")
+            
+            # Mevcut kullanıcıları doğrulanmış yap (eğer email_verified NULL ise)
+            db.session.execute(text('UPDATE "user" SET email_verified = FALSE WHERE email_verified IS NULL'))
+            
+            db.session.commit()
+            print("✅ Email doğrulama migration tamamlandı")
+    except Exception as e:
+        print(f"⚠️ Migration hatası (kritik değil): {e}")
+        db.session.rollback()
+        # Hata olsa bile devam et (kolonlar zaten varsa hata verebilir)
+
+# Uygulama başlangıcında migration çalıştır
+with app.app_context():
+    try:
+        migrate_email_verification_columns()
+    except Exception as e:
+        print(f"⚠️ Migration başlangıç hatası (kritik değil): {e}")
+
 if __name__ == '__main__':
     # debug=False yapın üretim ortamında
     app.run(debug=False, host='0.0.0.0', port=5000)
