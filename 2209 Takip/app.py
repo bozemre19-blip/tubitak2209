@@ -1,8 +1,9 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, send_file
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_mail import Mail, Message
 from werkzeug.utils import secure_filename
 from config import Config
-from models import db, User, Class, Assignment, Submission, Announcement, AnnouncementRead
+from models import db, User, Class, Assignment, Submission, Announcement, AnnouncementRead, Notification
 import os
 from datetime import datetime
 
@@ -11,6 +12,7 @@ app.config.from_object(Config)
 
 # Initialize extensions
 db.init_app(app)
+mail = Mail(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
@@ -22,6 +24,110 @@ def load_user(user_id):
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+
+# ============ Bildirim Sistemi ============
+
+def send_email_notification(to_email, subject, body):
+    """Email bildirimi gönder"""
+    try:
+        msg = Message(
+            subject=f"TÜBİTAK 2209 - {subject}",
+            recipients=[to_email],
+            body=body,
+            sender=app.config['MAIL_DEFAULT_SENDER']
+        )
+        mail.send(msg)
+    except Exception as e:
+        print(f"Email gönderme hatası: {e}")
+
+def create_notification(user_id, title, message, notif_type, icon='bi-bell', link=None, send_email=True):
+    """Bildirim oluştur ve email gönder"""
+    # Site içi bildirim oluştur
+    notification = Notification(
+        user_id=user_id,
+        title=title,
+        message=message,
+        type=notif_type,
+        icon=icon,
+        link=link
+    )
+    db.session.add(notification)
+    db.session.commit()
+    
+    # Email bildirimi gönder
+    if send_email:
+        user = User.query.get(user_id)
+        if user and user.email:
+            email_body = f"""
+Merhaba {user.full_name},
+
+{message}
+
+Detaylar için sisteme giriş yapabilirsiniz:
+http://127.0.0.1:5000
+
+---
+TÜBİTAK 2209-A Öğrenci Takip Sistemi
+Bu otomatik bir bildirimdir.
+"""
+            send_email_notification(user.email, title, email_body)
+
+def notify_students_new_assignment(assignment, class_obj):
+    """Yeni ödev eklendiğinde öğrencilere bildir"""
+    for student in class_obj.students:
+        create_notification(
+            user_id=student.id,
+            title='Yeni Ödev',
+            message=f'{class_obj.name} sınıfında yeni ödev: {assignment.title}',
+            notif_type='assignment',
+            icon='bi-file-earmark-text',
+            link=url_for('student_class_assignments', class_id=class_obj.id)
+        )
+
+def notify_student_graded(submission, assignment, class_obj):
+    """Ödev notlandırıldığında öğrenciye bildir"""
+    create_notification(
+        user_id=submission.student_id,
+        title='Ödev Notlandırıldı',
+        message=f'{assignment.title} ödevi notlandırıldı: {submission.score}/{assignment.max_score}',
+        notif_type='grade',
+        icon='bi-star-fill',
+        link=url_for('student_class_assignments', class_id=class_obj.id)
+    )
+
+def notify_teacher_new_submission(teacher_id, student, assignment, class_obj):
+    """Öğrenci ödev teslim ettiğinde öğretmene bildir"""
+    create_notification(
+        user_id=teacher_id,
+        title='Yeni Ödev Teslimi',
+        message=f'{student.full_name}, {assignment.title} ödevini teslim etti',
+        notif_type='submission',
+        icon='bi-upload',
+        link=url_for('admin_assignment_submissions', assignment_id=assignment.id)
+    )
+
+def notify_students_new_announcement(announcement, class_obj):
+    """Yeni bilgilendirme eklendiğinde öğrencilere bildir"""
+    for student in class_obj.students:
+        create_notification(
+            user_id=student.id,
+            title='Yeni Bilgilendirme',
+            message=f'{class_obj.name}: {announcement.title}',
+            notif_type='announcement',
+            icon='bi-megaphone' if announcement.is_important else 'bi-info-circle',
+            link=url_for('student_classes')
+        )
+
+def notify_teacher_student_enrolled(teacher_id, student, class_obj):
+    """Öğrenci sınıfa katıldığında öğretmene bildir"""
+    create_notification(
+        user_id=teacher_id,
+        title='Yeni Öğrenci',
+        message=f'{student.full_name}, {class_obj.name} sınıfına katıldı',
+        notif_type='enrollment',
+        icon='bi-person-plus',
+        link=url_for('admin_class_detail', class_id=class_obj.id)
+    )
 
 # Create database tables and upload folder
 with app.app_context():
@@ -167,6 +273,59 @@ def update_profile():
     
     flash('Bilgileriniz başarıyla güncellendi!', 'success')
     return redirect(url_for('profile'))
+
+@app.context_processor
+def inject_notifications():
+    """Her template'te bildirim sayısını göster"""
+    if current_user.is_authenticated:
+        unread_count = Notification.query.filter_by(
+            user_id=current_user.id,
+            is_read=False
+        ).count()
+        return dict(unread_notifications_count=unread_count)
+    return dict(unread_notifications_count=0)
+
+@app.route('/notifications')
+@login_required
+def notifications():
+    """Bildirimler sayfası"""
+    all_notifications = Notification.query.filter_by(
+        user_id=current_user.id
+    ).order_by(Notification.created_at.desc()).all()
+    
+    return render_template('notifications.html', notifications=all_notifications)
+
+@app.route('/notifications/<int:notification_id>/mark-read', methods=['POST'])
+@login_required
+def mark_notification_read(notification_id):
+    """Bildirimi okundu olarak işaretle"""
+    notification = Notification.query.get_or_404(notification_id)
+    
+    if notification.user_id != current_user.id:
+        flash('Bu bildirime erişim yetkiniz yok!', 'danger')
+        return redirect(url_for('notifications'))
+    
+    notification.is_read = True
+    db.session.commit()
+    
+    # Eğer link varsa oraya yönlendir
+    if notification.link:
+        return redirect(notification.link)
+    
+    return redirect(url_for('notifications'))
+
+@app.route('/notifications/mark-all-read', methods=['POST'])
+@login_required
+def mark_all_notifications_read():
+    """Tüm bildirimleri okundu olarak işaretle"""
+    Notification.query.filter_by(
+        user_id=current_user.id,
+        is_read=False
+    ).update({Notification.is_read: True})
+    db.session.commit()
+    
+    flash('Tüm bildirimler okundu olarak işaretlendi!', 'success')
+    return redirect(url_for('notifications'))
 
 @app.route('/logout')
 @login_required
@@ -387,6 +546,9 @@ def create_assignment(class_id):
     db.session.add(assignment)
     db.session.commit()
     
+    # Öğrencilere bildirim gönder
+    notify_students_new_assignment(assignment, cls)
+    
     flash(f'Ödev "{title}" başarıyla oluşturuldu!', 'success')
     return redirect(url_for('admin_class_detail', class_id=class_id))
 
@@ -440,6 +602,9 @@ def grade_submission(submission_id):
     
     db.session.commit()
     
+    # Öğrenciye bildirim gönder
+    notify_student_graded(submission, submission.assignment, submission.assignment.class_ref)
+    
     flash('Not ve geri bildirim kaydedildi!', 'success')
     return redirect(url_for('admin_assignment_submissions', assignment_id=submission.assignment_id))
 
@@ -476,6 +641,10 @@ def enroll_class(class_id):
     else:
         current_user.enrolled_classes.append(cls)
         db.session.commit()
+        
+        # Öğretmene bildirim gönder
+        notify_teacher_student_enrolled(cls.created_by, current_user, cls)
+        
         flash(f'"{cls.name}" sınıfına başarıyla katıldınız!', 'success')
     
     return redirect(url_for('student_classes'))
@@ -597,6 +766,9 @@ def submit_assignment(assignment_id):
             )
             db.session.add(submission)
             flash('Ödeviniz başarıyla teslim edildi!', 'success')
+            
+            # Öğretmene bildirim gönder
+            notify_teacher_new_submission(assignment.class_ref.created_by, current_user, assignment, assignment.class_ref)
         
         db.session.commit()
     else:
@@ -646,6 +818,9 @@ def create_announcement(class_id):
     
     db.session.add(announcement)
     db.session.commit()
+    
+    # Öğrencilere bildirim gönder
+    notify_students_new_announcement(announcement, cls)
     
     flash(f'Bilgilendirme "{title}" başarıyla yayınlandı!', 'success')
     return redirect(url_for('admin_class_detail', class_id=class_id))

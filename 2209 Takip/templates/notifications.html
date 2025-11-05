@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Bildirimler - TÜBİTAK 2209{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1><i class="bi bi-bell-fill"></i> Bildirimler</h1>
+            {% if notifications %}
+            <form method="POST" action="{{ url_for('mark_all_notifications_read') }}" class="d-inline">
+                <button type="submit" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-check-all"></i> Tümünü Okundu İşaretle
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        {% if notifications %}
+        <div class="list-group">
+            {% for notification in notifications %}
+            <div class="list-group-item list-group-item-action {% if not notification.is_read %}bg-light border-primary{% endif %}">
+                <div class="d-flex w-100 justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="{{ notification.icon }} text-primary me-2" style="font-size: 1.5rem;"></i>
+                            <h5 class="mb-0">{{ notification.title }}</h5>
+                            {% if not notification.is_read %}
+                            <span class="badge bg-primary ms-2">Yeni</span>
+                            {% endif %}
+                        </div>
+                        <p class="mb-2">{{ notification.message }}</p>
+                        <small class="text-muted">
+                            <i class="bi bi-clock"></i> {{ notification.created_at.strftime('%d.%m.%Y %H:%M') }}
+                        </small>
+                    </div>
+                    <div class="ms-3">
+                        {% if notification.link %}
+                        <form method="POST" action="{{ url_for('mark_notification_read', notification_id=notification.id) }}" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-primary">
+                                <i class="bi bi-box-arrow-up-right"></i> Git
+                            </button>
+                        </form>
+                        {% elif not notification.is_read %}
+                        <form method="POST" action="{{ url_for('mark_notification_read', notification_id=notification.id) }}" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-check"></i> Okundu
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Bildirim Tipi Badge -->
+                <div class="mt-2">
+                    {% if notification.type == 'assignment' %}
+                    <span class="badge bg-info"><i class="bi bi-file-earmark-text"></i> Ödev</span>
+                    {% elif notification.type == 'grade' %}
+                    <span class="badge bg-success"><i class="bi bi-star-fill"></i> Not</span>
+                    {% elif notification.type == 'announcement' %}
+                    <span class="badge bg-warning text-dark"><i class="bi bi-megaphone"></i> Bilgilendirme</span>
+                    {% elif notification.type == 'submission' %}
+                    <span class="badge bg-primary"><i class="bi bi-upload"></i> Teslim</span>
+                    {% elif notification.type == 'enrollment' %}
+                    <span class="badge bg-secondary"><i class="bi bi-person-plus"></i> Kayıt</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-bell-slash" style="font-size: 4rem;"></i>
+            <h3>Henüz bildiriminiz yok</h3>
+            <p class="text-muted">Yeni ödev, not veya bilgilendirmeler buradan takip edebilirsiniz.</p>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-primary mt-3">
+                <i class="bi bi-house-door"></i> Anasayfaya Dön
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    color: #6c757d;
+}
+
+.empty-state i {
+    opacity: 0.5;
+}
+
+.list-group-item {
+    transition: all 0.2s ease;
+}
+
+.list-group-item:hover {
+    transform: translateX(5px);
+}
+</style>
+{% endblock %}
+

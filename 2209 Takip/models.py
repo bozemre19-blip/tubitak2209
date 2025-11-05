@@ -25,6 +25,8 @@ class User(UserMixin, db.Model):
     enrolled_classes = db.relationship('Class', secondary=student_classes, 
                                        backref=db.backref('students', lazy='dynamic'))
     submissions = db.relationship('Submission', backref='student', lazy=True, cascade='all, delete-orphan')
+    notifications = db.relationship('Notification', backref='user', lazy=True, cascade='all, delete-orphan', 
+                                   foreign_keys='Notification.user_id')
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -111,4 +113,18 @@ class AnnouncementRead(db.Model):
     
     def __repr__(self):
         return f'<AnnouncementRead {self.announcement_id} by {self.student_id}>'
+
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    type = db.Column(db.String(50), nullable=False)  # 'assignment', 'grade', 'announcement', 'submission', 'enrollment'
+    icon = db.Column(db.String(50), default='bi-bell')  # Bootstrap icon class
+    link = db.Column(db.String(500))  # Tıklayınca gidilecek link
+    is_read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<Notification {self.id} - {self.title}>'
 
