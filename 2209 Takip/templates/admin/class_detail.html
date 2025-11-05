@@ -170,10 +170,18 @@
                                 </td>
                                 <td>{{ assignment.max_score }}</td>
                                 <td>
-                                    <a href="{{ url_for('admin_assignment_submissions', assignment_id=assignment.id) }}" 
-                                       class="btn btn-sm btn-outline-primary">
-                                        <i class="bi bi-eye"></i> Teslimleri Gör
-                                    </a>
+                                    <div class="d-flex gap-2">
+                                        <a href="{{ url_for('admin_assignment_submissions', assignment_id=assignment.id) }}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye"></i> Teslimleri Gör
+                                        </a>
+                                        <form method="POST" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" 
+                                              onsubmit="return confirm('Bu ödevi silmek istediğinizden emin misiniz? Ödev ile birlikte tüm teslimler de silinecektir!');" class="d-inline">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Sil">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                             {% endfor %}

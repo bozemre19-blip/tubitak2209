@@ -41,6 +41,14 @@
                                 {{ submissions|length }} / {{ (submissions|length + not_submitted_students|length) }}
                             </span>
                         </p>
+                        <div class="mt-3">
+                            <form method="POST" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" 
+                                  onsubmit="return confirm('Bu ödevi silmek istediğinizden emin misiniz? Ödev ile birlikte tüm teslimler de silinecektir!');" class="d-inline">
+                                <button type="submit" class="btn btn-danger">
+                                    <i class="bi bi-trash"></i> Ödevi Sil
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -609,6 +609,44 @@ def create_assignment(class_id):
         flash('Ödev oluşturulurken bir hata oluştu! Lütfen tekrar deneyin.', 'danger')
         return redirect(url_for('admin_class_detail', class_id=class_id))
 
+@app.route('/admin/assignments/<int:assignment_id>/delete', methods=['POST'])
+@login_required
+def delete_assignment(assignment_id):
+    try:
+        if current_user.role != 'admin':
+            flash('Bu işlem için yetkiniz yok!', 'danger')
+            return redirect(url_for('dashboard'))
+        
+        assignment = Assignment.query.get_or_404(assignment_id)
+        
+        # Sadece kendi sınıfının ödevini silebilir
+        if assignment.class_ref.created_by != current_user.id:
+            flash('Bu ödevi silme yetkiniz yok!', 'danger')
+            return redirect(url_for('admin_classes'))
+        
+        class_id = assignment.class_id
+        assignment_title = assignment.title
+        
+        # Ödev silindiğinde bağlı submission'lar da otomatik silinecek (cascade)
+        db.session.delete(assignment)
+        db.session.commit()
+        
+        flash(f'Ödev "{assignment_title}" başarıyla silindi!', 'success')
+        
+        # Nereden geldiyse oraya yönlendir
+        referer = request.headers.get('Referer')
+        if referer and 'submissions' in referer:
+            return redirect(url_for('admin_class_detail', class_id=class_id))
+        else:
+            return redirect(url_for('admin_class_detail', class_id=class_id))
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Ödev silme hatası: {e}")
+        import traceback
+        traceback.print_exc()
+        flash('Ödev silinirken bir hata oluştu!', 'danger')
+        return redirect(url_for('admin_classes'))
+
 @app.route('/admin/assignments/<int:assignment_id>/submissions')
 @login_required
 def admin_assignment_submissions(assignment_id):
