@@ -489,12 +489,18 @@ def create_class():
         return redirect(url_for('dashboard'))
     
     name = request.form.get('name')
-    code = request.form.get('code')
+    code = request.form.get('code', '').strip().upper()  # Büyük harfe çevir ve boşlukları temizle
     description = request.form.get('description')
     
-    # Kod zaten var mı?
-    if Class.query.filter_by(code=code).first():
-        flash('Bu sınıf kodu zaten kullanılıyor!', 'danger')
+    # Kod boş mu?
+    if not code:
+        flash('Sınıf kodu boş olamaz!', 'danger')
+        return redirect(url_for('admin_classes'))
+    
+    # Kod zaten var mı? (Case-insensitive kontrol - tüm öğretmenler için global benzersizlik)
+    existing_class = Class.query.filter(db.func.upper(Class.code) == code).first()
+    if existing_class:
+        flash(f'Bu sınıf kodu "{code}" zaten başka bir öğretmen tarafından kullanılıyor! Lütfen farklı bir kod seçin.', 'danger')
         return redirect(url_for('admin_classes'))
     
     new_class = Class(
@@ -763,8 +769,11 @@ def enroll_by_code():
             flash('Lütfen bir sınıf kodu girin!', 'danger')
             return redirect(url_for('student_classes'))
         
-        # Sınıf koduna göre sınıfı bul
-        cls = Class.query.filter_by(code=class_code, is_active=True).first()
+        # Sınıf koduna göre sınıfı bul (case-insensitive)
+        cls = Class.query.filter(
+            db.func.upper(Class.code) == class_code,
+            Class.is_active == True
+        ).first()
         
         if not cls:
             flash(f'"{class_code}" kodlu bir sınıf bulunamadı! Lütfen kodun doğru olduğundan emin olun.', 'danger')

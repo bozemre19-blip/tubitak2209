@@ -105,10 +105,13 @@
                     
                     <div class="mb-3">
                         <label for="code" class="form-label">Sınıf Kodu</label>
-                        <input type="text" class="form-control" id="code" name="code" 
-                               placeholder="Örn: PYTH2024" required>
+                        <input type="text" class="form-control text-uppercase" id="code" name="code" 
+                               placeholder="Örn: PYTH2024" 
+                               style="text-transform: uppercase; letter-spacing: 1px;"
+                               maxlength="20"
+                               required>
                         <small class="form-text text-muted">
-                            Öğrenciler bu kodu kullanarak sınıfa katılacak
+                            <i class="bi bi-info-circle"></i> Öğrenciler bu kodu kullanarak sınıfa katılacak. Kod tüm sistemde benzersiz olmalıdır.
                         </small>
                     </div>
                     
