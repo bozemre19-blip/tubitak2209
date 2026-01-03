@@ -17,7 +17,7 @@
                 <li class="breadcrumb-item active">{{ assignment.title }}</li>
             </ol>
         </nav>
-        
+
         <h1><i class="bi bi-file-earmark-text"></i> {{ assignment.title }}</h1>
     </div>
 </div>
@@ -36,15 +36,16 @@
                         <p><strong>Son Teslim:</strong> {{ assignment.due_date|datetime }}</p>
                         <p><strong>Max Puan:</strong> {{ assignment.max_score }}</p>
                         <p>
-                            <strong>Teslim Durumu:</strong> 
+                            <strong>Teslim Durumu:</strong>
                             <span class="badge bg-info">
                                 {{ submissions|length }} / {{ (submissions|length + not_submitted_students|length) }}
                             </span>
                         </p>
                         <div class="mt-3">
-                            <form method="POST" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" 
-                                  onsubmit="return confirm('Bu ödevi silmek istediğinizden emin misiniz? Ödev ile birlikte tüm teslimler de silinecektir!');" class="d-inline">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <form method="POST" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}"
+                                onsubmit="return confirm('Bu ödevi silmek istediğinizden emin misiniz? Ödev ile birlikte tüm teslimler de silinecektir!');"
+                                class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                                 <button type="submit" class="btn btn-danger">
                                     <i class="bi bi-trash"></i> Ödevi Sil
                                 </button>
@@ -84,18 +85,27 @@
                             {% for submission in submissions %}
                             <tr>
                                 <td>
-                                    <i class="bi bi-person-circle"></i> 
+                                    <i class="bi bi-person-circle"></i>
                                     <strong>{{ submission.student.full_name }}</strong><br>
                                     <small class="text-muted">{{ submission.student.email }}</small>
                                     {% if submission.student_comment %}
                                     <br><small class="text-info">
-                                        <i class="bi bi-chat-left-text"></i> <em>"{{ submission.student_comment[:50] }}{% if submission.student_comment|length > 50 %}...{% endif %}"</em>
+                                        <i class="bi bi-chat-left-text"></i> <em>"{{ submission.student_comment[:50]
+                                            }}{% if submission.student_comment|length > 50 %}...{% endif %}"</em>
                                     </small>
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <i class="bi bi-file-earmark-pdf text-danger"></i> 
-                                    {{ submission.file_name }}
+                                    {% for fname in submission.file_name.split('|||') %}
+                                    <div class="mb-1">
+                                        <i class="bi bi-file-earmark-pdf text-danger"></i>
+                                        {{ fname }}
+                                        <a href="{{ url_for('download_submission', submission_id=submission.id, file_index=loop.index0) }}"
+                                            class="btn btn-sm btn-outline-primary ms-2" title="İndir">
+                                            <i class="bi bi-download"></i>
+                                        </a>
+                                    </div>
+                                    {% endfor %}
                                 </td>
                                 <td>
                                     {{ submission.submitted_at|datetime }}
@@ -118,25 +128,21 @@
                                 </td>
                                 <td>
                                     {% if submission.score is not none %}
-                                    <strong class="text-primary">{{ submission.score }}/{{ assignment.max_score }}</strong>
+                                    <strong class="text-primary">{{ submission.score }}/{{ assignment.max_score
+                                        }}</strong>
                                     {% else %}
                                     <span class="text-muted">-</span>
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <a href="{{ url_for('download_submission', submission_id=submission.id) }}" 
-                                       class="btn btn-sm btn-primary mb-1">
-                                        <i class="bi bi-download"></i> İndir
-                                    </a>
-                                    <button class="btn btn-sm btn-success mb-1 grade-btn" 
-                                            data-submission-id="{{ submission.id }}"
-                                            data-student-name="{{ submission.student.full_name }}"
-                                            data-student-comment="{{ submission.student_comment or '' }}"
-                                            data-current-score="{{ submission.score or '' }}"
-                                            data-current-feedback="{{ submission.feedback or '' }}"
-                                            data-max-score="{{ assignment.max_score }}"
-                                            data-bs-toggle="modal" 
-                                            data-bs-target="#gradeModal">
+                                    <button class="btn btn-sm btn-success mb-1 grade-btn"
+                                        data-submission-id="{{ submission.id }}"
+                                        data-student-name="{{ submission.student.full_name }}"
+                                        data-student-comment="{{ submission.student_comment or '' }}"
+                                        data-current-score="{{ submission.score or '' }}"
+                                        data-current-feedback="{{ submission.feedback or '' }}"
+                                        data-max-score="{{ assignment.max_score }}" data-bs-toggle="modal"
+                                        data-bs-target="#gradeModal">
                                         <i class="bi bi-pencil"></i> Notlandır
                                     </button>
                                 </td>
@@ -163,7 +169,8 @@
         <div class="card border-warning">
             <div class="card-header bg-warning text-dark">
                 <h5 class="mb-0">
-                    <i class="bi bi-exclamation-triangle"></i> Teslim Etmeyen Öğrenciler ({{ not_submitted_students|length }})
+                    <i class="bi bi-exclamation-triangle"></i> Teslim Etmeyen Öğrenciler ({{
+                    not_submitted_students|length }})
                 </h5>
             </div>
             <div class="card-body">
@@ -202,7 +209,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" id="gradeForm" action="">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                 <div class="modal-body">
                     <div id="studentCommentSection" style="display: none;">
                         <div class="alert alert-info">
@@ -210,23 +217,20 @@
                             <p class="mb-0 mt-2 fst-italic" id="studentCommentText"></p>
                         </div>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="scoreInput" class="form-label">
                             Not (Max: <span id="maxScoreSpan"></span>)
                         </label>
-                        <input type="number" class="form-control" 
-                               id="scoreInput" name="score" 
-                               min="0" required>
+                        <input type="number" class="form-control" id="scoreInput" name="score" min="0" required>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="feedbackInput" class="form-label">
                             Geri Bildirim
                         </label>
-                        <textarea class="form-control" 
-                                  id="feedbackInput" name="feedback" 
-                                  rows="4" placeholder="Öğrenciye geri bildirim yazın..."></textarea>
+                        <textarea class="form-control" id="feedbackInput" name="feedback" rows="4"
+                            placeholder="Öğrenciye geri bildirim yazın..."></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -243,51 +247,50 @@
 </div>
 
 <script>
-// Modal açıldığında içeriği dinamik olarak doldur
-document.addEventListener('DOMContentLoaded', function() {
-    const gradeButtons = document.querySelectorAll('.grade-btn');
-    const gradeModal = new bootstrap.Modal(document.getElementById('gradeModal'));
-    const gradeForm = document.getElementById('gradeForm');
-    const gradeModalTitle = document.getElementById('gradeModalTitle');
-    const studentCommentSection = document.getElementById('studentCommentSection');
-    const studentCommentText = document.getElementById('studentCommentText');
-    const scoreInput = document.getElementById('scoreInput');
-    const feedbackInput = document.getElementById('feedbackInput');
-    const maxScoreSpan = document.getElementById('maxScoreSpan');
-    
-    gradeButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const submissionId = this.getAttribute('data-submission-id');
-            const studentName = this.getAttribute('data-student-name');
-            const studentComment = this.getAttribute('data-student-comment');
-            const currentScore = this.getAttribute('data-current-score');
-            const currentFeedback = this.getAttribute('data-current-feedback');
-            const maxScore = this.getAttribute('data-max-score');
-            
-            // Form action'ı güncelle
-            gradeForm.action = `/admin/submissions/${submissionId}/grade`;
-            
-            // Modal başlığını güncelle
-            gradeModalTitle.textContent = `Notlandır: ${studentName}`;
-            
-            // Max score'u güncelle
-            maxScoreSpan.textContent = maxScore;
-            scoreInput.setAttribute('max', maxScore);
-            
-            // Öğrenci açıklaması varsa göster
-            if (studentComment && studentComment.trim() !== '') {
-                studentCommentSection.style.display = 'block';
-                studentCommentText.textContent = `"${studentComment}"`;
-            } else {
-                studentCommentSection.style.display = 'none';
-            }
-            
-            // Mevcut not ve geri bildirimi doldur
-            scoreInput.value = currentScore || '';
-            feedbackInput.value = currentFeedback || '';
+    // Modal açıldığında içeriği dinamik olarak doldur
+    document.addEventListener('DOMContentLoaded', function () {
+        const gradeButtons = document.querySelectorAll('.grade-btn');
+        const gradeModal = new bootstrap.Modal(document.getElementById('gradeModal'));
+        const gradeForm = document.getElementById('gradeForm');
+        const gradeModalTitle = document.getElementById('gradeModalTitle');
+        const studentCommentSection = document.getElementById('studentCommentSection');
+        const studentCommentText = document.getElementById('studentCommentText');
+        const scoreInput = document.getElementById('scoreInput');
+        const feedbackInput = document.getElementById('feedbackInput');
+        const maxScoreSpan = document.getElementById('maxScoreSpan');
+
+        gradeButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                const submissionId = this.getAttribute('data-submission-id');
+                const studentName = this.getAttribute('data-student-name');
+                const studentComment = this.getAttribute('data-student-comment');
+                const currentScore = this.getAttribute('data-current-score');
+                const currentFeedback = this.getAttribute('data-current-feedback');
+                const maxScore = this.getAttribute('data-max-score');
+
+                // Form action'ı güncelle
+                gradeForm.action = `/admin/submissions/${submissionId}/grade`;
+
+                // Modal başlığını güncelle
+                gradeModalTitle.textContent = `Notlandır: ${studentName}`;
+
+                // Max score'u güncelle
+                maxScoreSpan.textContent = maxScore;
+                scoreInput.setAttribute('max', maxScore);
+
+                // Öğrenci açıklaması varsa göster
+                if (studentComment && studentComment.trim() !== '') {
+                    studentCommentSection.style.display = 'block';
+                    studentCommentText.textContent = `"${studentComment}"`;
+                } else {
+                    studentCommentSection.style.display = 'none';
+                }
+
+                // Mevcut not ve geri bildirimi doldur
+                scoreInput.value = currentScore || '';
+                feedbackInput.value = currentFeedback || '';
+            });
         });
     });
-});
 </script>
 {% endblock %}
-

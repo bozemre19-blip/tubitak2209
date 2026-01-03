@@ -866,35 +866,47 @@ def submit_assignment(assignment_id):
             flash('Bu sınıfa kayıtlı değilsiniz!', 'danger')
             return redirect(url_for('student_classes'))
         
-        # Dosya yüklendi mi?
-        if 'file' not in request.files:
-            flash('Dosya seçilmedi!', 'danger')
-            return redirect(url_for('student_class_assignments', class_id=assignment.class_id))
-        
-        file = request.files['file']
+        # Çoklu dosya yükleme
+        files = request.files.getlist('files')
         student_comment = request.form.get('student_comment', '').strip()
         
-        if file.filename == '':
-            flash('Dosya seçilmedi!', 'danger')
+        if not files or all(f.filename == '' for f in files):
+            flash('En az bir dosya seçmeniz gerekiyor!', 'danger')
             return redirect(url_for('student_class_assignments', class_id=assignment.class_id))
         
-        if not allowed_file(file.filename):
-            flash('Sadece PDF ve DOCX dosyaları yüklenebilir!', 'danger')
+        # En fazla 3 dosya kontrolü
+        valid_files = [f for f in files if f.filename != '']
+        if len(valid_files) > 3:
+            flash('En fazla 3 dosya yükleyebilirsiniz!', 'danger')
             return redirect(url_for('student_class_assignments', class_id=assignment.class_id))
         
-        filename = secure_filename(file.filename)
+        # Tüm dosyaları kontrol et
+        for f in valid_files:
+            if not allowed_file(f.filename):
+                flash(f'Sadece PDF ve DOCX dosyaları yüklenebilir! ({f.filename})', 'danger')
+                return redirect(url_for('student_class_assignments', class_id=assignment.class_id))
         
-        # Benzersiz dosya adı oluştur
+        # Dosyaları kaydet
+        saved_filenames = []
+        saved_filepaths = []
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        unique_filename = f"{current_user.id}_{assignment_id}_{timestamp}_{filename}"
         
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+        for idx, file in enumerate(valid_files):
+            filename = secure_filename(file.filename)
+            unique_filename = f"{current_user.id}_{assignment_id}_{timestamp}_{idx}_{filename}"
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+            
+            # Dosya yükleme dizininin var olduğundan emin ol
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            
+            # Dosyayı kaydet
+            file.save(file_path)
+            saved_filenames.append(filename)
+            saved_filepaths.append(file_path)
         
-        # Dosya yükleme dizininin var olduğundan emin ol
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
-        
-        # Dosyayı kaydet
-        file.save(file_path)
+        # Dosya adlarını ve yollarını birleştir
+        combined_filenames = '|||'.join(saved_filenames)
+        combined_filepaths = '|||'.join(saved_filepaths)
         
         # Daha önce teslim var mı? Varsa güncelle
         existing_submission = Submission.query.filter_by(
@@ -903,29 +915,31 @@ def submit_assignment(assignment_id):
         ).first()
         
         if existing_submission:
-            # Eski dosyayı sil
-            try:
-                if existing_submission.file_path and os.path.exists(existing_submission.file_path):
-                    os.remove(existing_submission.file_path)
-            except Exception as e:
-                print(f"⚠️ Eski dosya silme hatası: {e}")
+            # Eski dosyaları sil
+            if existing_submission.file_path:
+                for old_path in existing_submission.file_path.split('|||'):
+                    try:
+                        if old_path and os.path.exists(old_path):
+                            os.remove(old_path)
+                    except Exception as e:
+                        print(f"⚠️ Eski dosya silme hatası: {e}")
             
-            existing_submission.file_name = filename
-            existing_submission.file_path = file_path
+            existing_submission.file_name = combined_filenames
+            existing_submission.file_path = combined_filepaths
             existing_submission.student_comment = student_comment
             existing_submission.submitted_at = datetime.utcnow()
-            flash('Ödeviniz güncellendi!', 'success')
+            flash(f'Ödeviniz güncellendi! ({len(saved_filenames)} dosya)', 'success')
         else:
             # Yeni teslim oluştur
             submission = Submission(
                 assignment_id=assignment_id,
                 student_id=current_user.id,
-                file_name=filename,
-                file_path=file_path,
+                file_name=combined_filenames,
+                file_path=combined_filepaths,
                 student_comment=student_comment
             )
             db.session.add(submission)
-            flash('Ödeviniz başarıyla teslim edildi!', 'success')
+            flash(f'Ödeviniz başarıyla teslim edildi! ({len(saved_filenames)} dosya)', 'success')
             
             # Öğretmene bildirim gönder (hata olsa bile devam et)
             notify_teacher_new_submission(assignment.class_ref.created_by, current_user, assignment, assignment.class_ref)
@@ -938,10 +952,12 @@ def submit_assignment(assignment_id):
         import traceback
         traceback.print_exc()
         flash('Ödev teslim edilirken bir hata oluştu! Lütfen tekrar deneyin.', 'danger')
-        # Dosya yüklenmişse sil
+        # Kaydedilen dosyaları sil
         try:
-            if 'file_path' in locals() and os.path.exists(file_path):
-                os.remove(file_path)
+            if 'saved_filepaths' in locals():
+                for fp in saved_filepaths:
+                    if os.path.exists(fp):
+                        os.remove(fp)
         except:
             pass
         return redirect(url_for('student_class_assignments', class_id=assignment.class_id))
@@ -1370,8 +1386,9 @@ def download_announcement(announcement_id):
 # ============ Dosya İndirme ============
 
 @app.route('/download/<int:submission_id>')
+@app.route('/download/<int:submission_id>/<int:file_index>')
 @login_required
-def download_submission(submission_id):
+def download_submission(submission_id, file_index=0):
     submission = Submission.query.get_or_404(submission_id)
     
     # Erişim kontrolü
@@ -1384,12 +1401,23 @@ def download_submission(submission_id):
         flash('Bu dosyaya erişim yetkiniz yok!', 'danger')
         return redirect(url_for('dashboard'))
     
-    if not submission.file_path or not os.path.exists(submission.file_path):
+    # Çoklu dosya desteği
+    file_paths = submission.file_path.split('|||') if submission.file_path else []
+    file_names = submission.file_name.split('|||') if submission.file_name else []
+    
+    if not file_paths or file_index >= len(file_paths):
+        flash('Dosya bulunamadı!', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    file_path = file_paths[file_index]
+    file_name = file_names[file_index] if file_index < len(file_names) else f'dosya_{file_index}'
+    
+    if not file_path or not os.path.exists(file_path):
         flash('Dosya bulunamadı!', 'danger')
         return redirect(url_for('dashboard'))
     
     # Path traversal koruması - dosya yolunu normalize et ve kontrol et
-    file_path = os.path.normpath(submission.file_path)
+    file_path = os.path.normpath(file_path)
     upload_dir = os.path.normpath(app.config['UPLOAD_FOLDER'])
     
     # Path traversal kontrolü - dosya upload klasörü dışına çıkmamalı
@@ -1397,7 +1425,7 @@ def download_submission(submission_id):
         flash('Geçersiz dosya yolu!', 'danger')
         return redirect(url_for('dashboard'))
     
-    return send_file(file_path, as_attachment=True, download_name=submission.file_name)
+    return send_file(file_path, as_attachment=True, download_name=file_name)
 
 # ============ Template Filtreleri ============
 
