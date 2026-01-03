@@ -664,11 +664,23 @@ def delete_assignment(assignment_id):
         class_id = assignment.class_id
         assignment_title = assignment.title
         
+        # Önce tüm submission dosyalarını fiziksel olarak sil
+        deleted_files = 0
+        for submission in assignment.submissions:
+            if submission.file_path:
+                for file_path in submission.file_path.split('|||'):
+                    try:
+                        if file_path and os.path.exists(file_path):
+                            os.remove(file_path)
+                            deleted_files += 1
+                    except Exception as e:
+                        print(f"⚠️ Dosya silme hatası: {e}")
+        
         # Ödev silindiğinde bağlı submission'lar da otomatik silinecek (cascade)
         db.session.delete(assignment)
         db.session.commit()
         
-        flash(f'Ödev "{assignment_title}" başarıyla silindi!', 'success')
+        flash(f'Ödev "{assignment_title}" başarıyla silindi! ({deleted_files} dosya temizlendi)', 'success')
         
         # Nereden geldiyse oraya yönlendir
         referer = request.headers.get('Referer')
