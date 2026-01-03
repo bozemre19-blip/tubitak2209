@@ -15,52 +15,57 @@
 <div class="row mb-4">
     <div class="col-md-3 mb-3">
         <a href="{{ url_for('admin_classes') }}" class="text-decoration-none">
-            <div class="card bg-primary text-white stats-card clickable-card">
+            <div class="card stats-card clickable-card"
+                style="background: linear-gradient(135deg, #fff 0%, #fdf5f6 100%); border-left: 4px solid #6D131F;">
                 <div class="card-body">
-                    <i class="bi bi-people-fill"></i>
-                    <h3>{{ total_students }}</h3>
-                    <p class="mb-0">Öğrenci</p>
+                    <i class="bi bi-people-fill" style="color: #6D131F;"></i>
+                    <h3 style="color: #6D131F;">{{ total_students }}</h3>
+                    <p class="mb-0" style="color: #212327;">Öğrenci</p>
                 </div>
             </div>
         </a>
     </div>
-    
+
     <div class="col-md-3 mb-3">
         <a href="{{ url_for('admin_classes') }}" class="text-decoration-none">
-            <div class="card bg-success text-white stats-card clickable-card">
+            <div class="card stats-card clickable-card"
+                style="background: linear-gradient(135deg, #fff 0%, #fdf5f6 100%); border-left: 4px solid #8B1E2B;">
                 <div class="card-body">
-                    <i class="bi bi-book-fill"></i>
-                    <h3>{{ total_classes }}</h3>
-                    <p class="mb-0">Sınıf</p>
+                    <i class="bi bi-book-fill" style="color: #8B1E2B;"></i>
+                    <h3 style="color: #8B1E2B;">{{ total_classes }}</h3>
+                    <p class="mb-0" style="color: #212327;">Sınıf</p>
                 </div>
             </div>
         </a>
     </div>
-    
+
     <div class="col-md-3 mb-3">
         <a href="{{ url_for('admin_classes') }}" class="text-decoration-none">
-            <div class="card bg-info text-white stats-card clickable-card">
+            <div class="card stats-card clickable-card"
+                style="background: linear-gradient(135deg, #fff 0%, #fdf5f6 100%); border-left: 4px solid #6D131F;">
                 <div class="card-body">
-                    <i class="bi bi-file-earmark-text-fill"></i>
-                    <h3>{{ total_assignments }}</h3>
-                    <p class="mb-0">Ödev</p>
+                    <i class="bi bi-file-earmark-text-fill" style="color: #6D131F;"></i>
+                    <h3 style="color: #6D131F;">{{ total_assignments }}</h3>
+                    <p class="mb-0" style="color: #212327;">Ödev</p>
                 </div>
             </div>
         </a>
     </div>
-    
+
     <div class="col-md-3 mb-3">
         <a href="#recent-submissions" class="text-decoration-none">
-            <div class="card bg-warning text-dark stats-card clickable-card">
+            <div class="card stats-card clickable-card"
+                style="background: linear-gradient(135deg, #fff 0%, #fdf5f6 100%); border-left: 4px solid #FFD700;">
                 <div class="card-body">
-                    <i class="bi bi-upload"></i>
-                    <h3>{{ total_submissions }}</h3>
-                    <p class="mb-0">Teslim</p>
+                    <i class="bi bi-upload" style="color: #8B1E2B;"></i>
+                    <h3 style="color: #8B1E2B;">{{ total_submissions }}</h3>
+                    <p class="mb-0" style="color: #212327;">Teslim</p>
                 </div>
             </div>
         </a>
     </div>
 </div>
+
 
 <!-- TÜBİTAK 2209-A Program Duyuruları -->
 {% if program_announcements %}
@@ -72,9 +77,8 @@
                     <i class="bi bi-bullhorn-fill"></i> TÜBİTAK 2209-A Program Duyuruları
                 </h5>
                 <div class="d-flex gap-2">
-                    <a href="https://tubitak.gov.tr/tr/burslar/lisans-onlisans/destek-programlari/2209-universite-ogrencileri-arastirma-projeleri-destekleme-programi" 
-                       target="_blank" 
-                       class="btn btn-sm btn-primary">
+                    <a href="https://tubitak.gov.tr/tr/burslar/lisans-onlisans/destek-programlari/2209-universite-ogrencileri-arastirma-projeleri-destekleme-programi"
+                        target="_blank" class="btn btn-sm btn-primary">
                         <i class="bi bi-box-arrow-up-right"></i> TÜBİTAK 2209 Sayfasına Git
                     </a>
                     <a href="{{ url_for('admin_program_announcements') }}" class="btn btn-sm btn-dark">
@@ -85,7 +89,8 @@
             <div class="card-body">
                 <div class="list-group list-group-flush">
                     {% for announcement in program_announcements %}
-                    <div class="list-group-item {% if announcement.is_important %}border-danger border-start border-4{% endif %}">
+                    <div
+                        class="list-group-item {% if announcement.is_important %}border-danger border-start border-4{% endif %}">
                         <div class="d-flex w-100 justify-content-between align-items-start">
                             <div class="flex-grow-1">
                                 <h6 class="mb-2">
@@ -94,10 +99,12 @@
                                     {% endif %}
                                     <i class="bi bi-bullhorn-fill text-warning"></i> {{ announcement.title }}
                                 </h6>
-                                <p class="mb-2">{{ announcement.content[:150] }}{% if announcement.content|length > 150 %}...{% endif %}</p>
+                                <p class="mb-2">{{ announcement.content[:150] }}{% if announcement.content|length > 150
+                                    %}...{% endif %}</p>
                                 <div class="d-flex gap-3 align-items-center flex-wrap">
                                     {% if announcement.external_link %}
-                                    <a href="{{ announcement.external_link }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    <a href="{{ announcement.external_link }}" target="_blank"
+                                        class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-box-arrow-up-right"></i> Detaylı Bilgi (TÜBİTAK)
                                     </a>
                                     {% endif %}
@@ -144,7 +151,8 @@
                                     {% endif %}
                                     <i class="bi bi-megaphone-fill text-success"></i> {{ item.announcement.title }}
                                 </h6>
-                                <p class="mb-2 text-muted">{{ item.announcement.content[:100] }}{% if item.announcement.content|length > 100 %}...{% endif %}</p>
+                                <p class="mb-2 text-muted">{{ item.announcement.content[:100] }}{% if
+                                    item.announcement.content|length > 100 %}...{% endif %}</p>
                                 <div class="d-flex gap-3 align-items-center flex-wrap">
                                     <small>
                                         <span class="badge bg-secondary">{{ item.class.name }}</span>
@@ -153,14 +161,17 @@
                                         <i class="bi bi-calendar"></i> {{ item.announcement.created_at|datetime }}
                                     </small>
                                     <small>
-                                        <a href="{{ url_for('announcement_readers', announcement_id=item.announcement.id) }}" class="text-decoration-none">
+                                        <a href="{{ url_for('announcement_readers', announcement_id=item.announcement.id) }}"
+                                            class="text-decoration-none">
                                             {% if item.read_count == item.student_count %}
                                             <span class="badge bg-success">
-                                                <i class="bi bi-check-all"></i> Herkes okudu ({{ item.read_count }}/{{ item.student_count }})
+                                                <i class="bi bi-check-all"></i> Herkes okudu ({{ item.read_count }}/{{
+                                                item.student_count }})
                                             </span>
                                             {% elif item.read_count > 0 %}
                                             <span class="badge bg-info">
-                                                <i class="bi bi-eye-fill"></i> {{ item.read_count }}/{{ item.student_count }} öğrenci okudu
+                                                <i class="bi bi-eye-fill"></i> {{ item.read_count }}/{{
+                                                item.student_count }} öğrenci okudu
                                             </span>
                                             {% else %}
                                             <span class="badge bg-warning text-dark">
@@ -172,13 +183,15 @@
                                 </div>
                             </div>
                             <div class="ms-3 d-flex gap-2">
-                                <a href="{{ url_for('announcement_readers', announcement_id=item.announcement.id) }}" 
-                                   class="btn btn-sm btn-outline-info">
+                                <a href="{{ url_for('announcement_readers', announcement_id=item.announcement.id) }}"
+                                    class="btn btn-sm btn-outline-info">
                                     <i class="bi bi-people"></i> Detay
                                 </a>
-                                <form method="POST" action="{{ url_for('delete_announcement', announcement_id=item.announcement.id) }}" 
-                                      onsubmit="return confirm('Bu bilgilendirmeyi silmek istediğinizden emin misiniz?');" class="d-inline">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <form method="POST"
+                                    action="{{ url_for('delete_announcement', announcement_id=item.announcement.id) }}"
+                                    onsubmit="return confirm('Bu bilgilendirmeyi silmek istediğinizden emin misiniz?');"
+                                    class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                                     <button type="submit" class="btn btn-sm btn-outline-danger" title="Sil">
                                         <i class="bi bi-trash"></i>
                                     </button>
@@ -242,12 +255,12 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <a href="{{ url_for('download_submission', submission_id=submission.id) }}" 
-                                       class="btn btn-sm btn-primary">
+                                    <a href="{{ url_for('download_submission', submission_id=submission.id) }}"
+                                        class="btn btn-sm btn-primary">
                                         <i class="bi bi-download"></i> İndir
                                     </a>
-                                    <a href="{{ url_for('admin_assignment_submissions', assignment_id=submission.assignment_id) }}" 
-                                       class="btn btn-sm btn-secondary">
+                                    <a href="{{ url_for('admin_assignment_submissions', assignment_id=submission.assignment_id) }}"
+                                        class="btn btn-sm btn-secondary">
                                         <i class="bi bi-eye"></i> Detay
                                     </a>
                                 </td>
@@ -281,7 +294,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="col-md-3 mb-3">
         <div class="card">
             <div class="card-body text-center">
@@ -294,7 +307,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="col-md-3 mb-3">
         <div class="card">
             <div class="card-body text-center">
@@ -307,7 +320,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="col-md-3 mb-3">
         <div class="card">
             <div class="card-body text-center">
@@ -315,19 +328,14 @@
                 <h5 class="mt-3">TÜBİTAK Bağlantıları</h5>
                 <p class="text-muted">Önemli TÜBİTAK sayfalarına erişim</p>
                 <div class="d-grid gap-2">
-                    <a href="https://tubitak.gov.tr/tr/burslar/lisans-onlisans/destek-programlari/2209-universite-ogrencileri-arastirma-projeleri-destekleme-programi" 
-                       target="_blank" 
-                       class="btn btn-primary btn-sm">
+                    <a href="https://tubitak.gov.tr/tr/burslar/lisans-onlisans/destek-programlari/2209-universite-ogrencileri-arastirma-projeleri-destekleme-programi"
+                        target="_blank" class="btn btn-primary btn-sm">
                         <i class="bi bi-box-arrow-up-right"></i> TÜBİTAK 2209 Proje Sayfası
                     </a>
-                    <a href="https://arbis.tubitak.gov.tr/" 
-                       target="_blank" 
-                       class="btn btn-info btn-sm">
+                    <a href="https://arbis.tubitak.gov.tr/" target="_blank" class="btn btn-info btn-sm">
                         <i class="bi bi-box-arrow-up-right"></i> ARBİS
                     </a>
-                    <a href="https://ebideb.tubitak.gov.tr/giris.htm" 
-                       target="_blank" 
-                       class="btn btn-success btn-sm">
+                    <a href="https://ebideb.tubitak.gov.tr/giris.htm" target="_blank" class="btn btn-success btn-sm">
                         <i class="bi bi-box-arrow-up-right"></i> BİDEB
                     </a>
                 </div>
@@ -336,4 +344,3 @@
     </div>
 </div>
 {% endblock %}
-
