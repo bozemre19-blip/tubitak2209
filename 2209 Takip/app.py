@@ -1419,6 +1419,6 @@ def inject_now():
     return {'now': datetime.utcnow}
 
 if __name__ == '__main__':
-    # debug=False yapın üretim ortamında
-    app.run(debug=False, host='0.0.0.0', port=5000)
+    # debug=True for development, set to False in production
+    app.run(debug=True, host='127.0.0.1', port=8080)
 
